@@ -1,4 +1,4 @@
-import ProxyServer from './proxi'
+import ProxyServer from './proxy'
 import type { Server } from './types'
 
 /**
