@@ -297,7 +297,6 @@ export function mergeSetCookie(setCookie, upstreamSetCookie) {
  */
 export function runWebOutgoingPasses(req, res, proxyRes, options) {
     for (let i = 0; i < passes.length; i++) {
-        console.log(passes)
         if (passes[i](req, res, proxyRes, options)) {
             break;
         }
