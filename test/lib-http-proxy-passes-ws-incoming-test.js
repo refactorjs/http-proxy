@@ -1,7 +1,7 @@
-import { checkMethodAndHeader, XHeaders } from '../src/proxi/passes/ws.incoming.ts';
+import { checkMethodAndHeader, XHeaders } from '../src/proxy/passes/ws.incoming.ts';
 import expect from 'expect.js';
 
-describe('src/proxi/passes/ws.incoming.js', function () {
+describe('src/proxy/passes/ws.incoming.js', function () {
     describe('#checkMethodAndHeader', function () {
         it('should drop non-GET connections', function () {
             var destroyCalled = false,

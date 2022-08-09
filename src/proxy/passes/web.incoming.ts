@@ -1,7 +1,10 @@
-import { pipeline } from 'stream';
-import http from 'http';
-import https from 'http';
+import type { Server } from '../../types'
+import type { ProxyServer } from '../'
+import type { Buffer } from 'buffer';
 import * as common from '../common';
+import { pipeline } from 'stream';
+import http, { IncomingMessage, ServerResponse } from 'http';
+import https from 'http';
 import followRedirects from 'follow-redirects';
 
 const nativeAgents = { http: http, https: https };
@@ -15,13 +18,13 @@ const hasAbortedEvent = (function () {
 /**
  * Sets `content-length` to '0' if request is of DELETE type.
  *
- * @param {ClientRequest} Req Request object
- * @param {IncomingMessage} Res Response object
- * @param {Object} Options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
  *
  * @api private
  */
-export function deleteLength(req, res, options) {
+export function deleteLength(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void {
     if ((req.method === 'DELETE' || req.method === 'OPTIONS') && !req.headers['content-length']) {
         req.headers['content-length'] = '0';
         delete req.headers['transfer-encoding'];
@@ -31,13 +34,13 @@ export function deleteLength(req, res, options) {
 /**
  * Sets timeout in request socket if it was specified in options.
  *
- * @param {ClientRequest} Req Request object
- * @param {IncomingMessage} Res Response object
- * @param {Object} Options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
  *
  * @api private
  */
-export function timeout(req, res, options) {
+export function timeout(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void {
     let timeoutValue = (options.timeout ? options.timeout : 0);
     req.socket.setTimeout(timeoutValue);
 }
@@ -45,15 +48,16 @@ export function timeout(req, res, options) {
 /**
  * Sets `x-forwarded-*` headers if specified in config.
  *
- * @param {ClientRequest} Req Request object
- * @param {IncomingMessage} Res Response object
- * @param {Object} Options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
  *
  * @api private
  */
-export function XHeaders(req, res, options) {
+export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void {
     if (!options.xfwd) return;
 
+    // @ts-ignore - Spdy is not exported in the types file
     let encrypted = req.isSpdy || common.hasEncryptedConnection(req);
     let values = {
         for: req.connection.remoteAddress || req.socket.remoteAddress,
@@ -73,13 +77,15 @@ export function XHeaders(req, res, options) {
  * a ForwardStream, same happens for ProxyStream. The request
  * just dies otherwise.
  *
- * @param {ClientRequest} Req Request object
- * @param {IncomingMessage} Res Response object
- * @param {Object} Options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
+ * @param { Buffer } head Buffer containing the first bytes of the incoming request
+ * @param { ProxyServer } server Server object
  *
  * @api private
  */
-export function stream(req, res, options, _, server, callback) {
+export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: ( err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
 
     // And we begin!
     server.emit('start', req, res, options.target || options.forward);
@@ -200,11 +206,4 @@ export function stream(req, res, options, _, server, callback) {
             }
         }
     });
-}
-
-export const webIncoming = {
-    deleteLength: deleteLength,
-    timeout: timeout,
-    XHeaders: XHeaders,
-    stream: stream
 }

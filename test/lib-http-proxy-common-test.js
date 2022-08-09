@@ -2,7 +2,7 @@ import { setupOutgoing, setupSocket } from '../src/proxy/common.ts';
 import { parse } from 'url';
 import expect from 'expect.js';
 
-describe('src/proxi/common.ts', function () {
+describe('src/proxy/common.ts', function () {
     describe('#setupOutgoing', function () {
         it('should setup the correct headers', function () {
             var outgoing = {};

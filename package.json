@@ -33,6 +33,8 @@
         "follow-redirects": "^1.15.1"
     },
     "devDependencies": {
+        "@types/follow-redirects": "^1.14.1",
+        "@types/node": "^18.0.0",
         "async": "^3.0.0",
         "concat-stream": "^2.0.0",
         "expect.js": "~0.3.1",
@@ -49,7 +51,7 @@
         "ws": "^8.0.0"
     },
     "engines": {
-        "node": ">=10.0.0"
+        "node": ">=14.0.0"
     },
     "packageManager": "yarn@3.2.0",
     "bugs": {
@@ -61,6 +63,5 @@
         "node-http-proxy",
         "http-proxy",
         "alternative"
-    ],
-    "author": ""
+    ]
 }

@@ -1,7 +1,7 @@
-import { setRedirectHostRewrite, setConnection, writeStatusCode, writeHeaders, attachOutgoingHeaders, removeChunked } from '../src/proxi/passes/web.outgoing.ts';
+import { setRedirectHostRewrite, setConnection, writeStatusCode, writeHeaders, attachOutgoingHeaders, removeChunked } from '../src/proxy/passes/web.outgoing.ts';
 import expect from 'expect.js';
 
-describe('src/proxi/passes/web.outgoing.ts', function () {
+describe('src/proxy/passes/web.outgoing.ts', function () {
     describe('#setRedirectHostRewrite', function () {
         beforeEach(function () {
             this.req = {

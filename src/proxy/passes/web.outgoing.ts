@@ -1,3 +1,5 @@
+import type { Server } from '../../types'
+import type { IncomingMessage, ServerResponse } from 'http';
 import * as common from '../common';
 
 const redirectRegex = /^201|30(1|2|7|8)$/;
@@ -5,13 +7,13 @@ const redirectRegex = /^201|30(1|2|7|8)$/;
 /**
  * If is a HTTP 1.0 request, remove chunk headers
  *
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } proxyRes Response object from the proxy request
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { IncomingMessage } proxyRes Response object from the proxy request
  *
  * @api private
  */
-export function removeChunked(req, res, proxyRes) {
+export function removeChunked(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage): void {
     if (req.httpVersion === '1.0' || proxyRes.statusCode === 204 || proxyRes.statusCode === 304) {
         delete proxyRes.headers['transfer-encoding'];
     }
@@ -21,13 +23,13 @@ export function removeChunked(req, res, proxyRes) {
  * If is a HTTP 1.0 request, set the correct connection header
  * or if connection header not present, then use `keep-alive`
  *
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } proxyRes Response object from the proxy request
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { IncomingMessage } proxyRes Response object from the proxy request
  *
  * @api private
  */
-export function setConnection(req, res, proxyRes) {
+export function setConnection(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage): void {
     if (req.httpVersion === '1.0') {
         proxyRes.headers.connection = req.headers.connection || 'close';
     } else if (req.httpVersion !== '2.0' && !proxyRes.headers.connection) {
@@ -38,14 +40,15 @@ export function setConnection(req, res, proxyRes) {
 /**
  * Set the headers from the proxyResponse
  * 
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } proxyRes Response object from the proxy request
- * @param { Object } options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { IncomingMessage } proxyRes Response object from the proxy request
+ * @param { Server.ServerOptions } options Config object passed to the proxy
+ * 
  * @api private
  */
-export function setRedirectHostRewrite(req, res, proxyRes, options) {
-    if ((options.hostRewrite || options.autoRewrite || options.protocolRewrite) && proxyRes.headers['location'] && redirectRegex.test(proxyRes.statusCode)) {
+export function setRedirectHostRewrite(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage, options: Server.ServerOptions): void {
+    if ((options.hostRewrite || options.autoRewrite || options.protocolRewrite) && proxyRes.headers['location'] && redirectRegex.test(proxyRes.statusCode.toString())) {
 
         const targetStr = typeof options.target === 'string' ? options.target : options.target.href;
         let target = new URL(targetStr);
@@ -74,14 +77,14 @@ export function setRedirectHostRewrite(req, res, proxyRes, options) {
  * Copy headers from proxyResponse to response
  * set each header in response object.
  *
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } proxyRes Response object from the proxy request
- * @param { Object } options options.cookieDomainRewrite: Config to rewrite cookie domain
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { IncomingMessage } proxyRes Response object from the proxy request
+ * @param { Server.ServerOptions } options options.cookieDomainRewrite: Config to rewrite cookie domain
  *
  * @api private
  */
-export function writeHeaders(req, res, proxyRes, options) {
+export function writeHeaders(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage, options: Server.ServerOptions): void {
     const preserveHeaderKeyCase = options.preserveHeaderKeyCase;
 
     let rewriteCookieDomainConfig = options.cookieDomainRewrite,
@@ -141,12 +144,12 @@ export function writeHeaders(req, res, proxyRes, options) {
 /**
  * Add headers from options.outgoingHeaders to response
  *
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } res Response object from the proxy request
- * @param { Object } options Object with options in it
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { ServerResponse } res Response object from the proxy request
+ * @param { Server.ServerOptions } options Object with options in it
  */
-export function attachOutgoingHeaders(req, res, proxyRes, options) {
+export function attachOutgoingHeaders(req: IncomingMessage, res: ServerResponse, proxyRes, options: Server.ServerOptions): void {
     if (options.outgoingHeaders != null) {
         Object.keys(options.outgoingHeaders).forEach(function (header) {
             res.setHeader(header, options.outgoingHeaders[header]);
@@ -157,13 +160,13 @@ export function attachOutgoingHeaders(req, res, proxyRes, options) {
 /**
  * Set the statusCode from the proxyResponse
  *
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } proxyRes Response object from the proxy request
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { IncomingMessage } proxyRes Response object from the proxy request
  *
  * @api private
  */
-export function writeStatusCode(req, res, proxyRes) {
+export function writeStatusCode(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage): void {
     // From Node.js docs: response.writeHead(statusCode[, statusMessage][, headers])
     if (proxyRes.statusMessage) {
         res.statusCode = proxyRes.statusCode;
@@ -171,13 +174,4 @@ export function writeStatusCode(req, res, proxyRes) {
     } else {
         res.statusCode = proxyRes.statusCode;
     }
-}
-
-export const webOutgoing = {
-    removeChunked: removeChunked,
-    setConnection: setConnection,
-    setRedirectHostRewrite: setRedirectHostRewrite,
-    writeHeaders: writeHeaders,
-    attachOutgoingHeaders: attachOutgoingHeaders,
-    writeStatusCode: writeStatusCode
 }

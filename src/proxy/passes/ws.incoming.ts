@@ -1,4 +1,8 @@
-import http from 'http';
+import type { Server } from '../../types'
+import type { ProxyServer } from '../'
+import type { Buffer } from 'buffer';
+import type { Socket } from 'net';
+import http, { IncomingMessage, ServerResponse, IncomingHttpHeaders } from 'http';
 import https from 'https';
 import * as common from '../common';
 
@@ -6,12 +10,12 @@ import * as common from '../common';
  * WebSocket requests must have the `GET` method and
  * the `upgrade:websocket` header
  *
- * @param {ClientRequest} Req Request object
- * @param {Socket} Websocket
+ * @param { IncomingMessage } req Request object
+ * @param { Socket } socket Socket object
  *
  * @api private
  */
-export function checkMethodAndHeader(req, socket) {
+export function checkMethodAndHeader(req: IncomingMessage, socket: Socket): void | boolean {
     if (req.method !== 'GET' || !req.headers.upgrade) {
         socket.destroy();
         return true;
@@ -26,14 +30,14 @@ export function checkMethodAndHeader(req, socket) {
 /**
  * Sets `x-forwarded-*` headers if specified in config.
  *
- * @param {ClientRequest} Req Request object
- * @param {Socket} Websocket
- * @param {Object} Options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { Socket } socket Socket object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
  *
  * @api private
  */
 
-export function XHeaders(req, socket, options) {
+export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.ServerOptions): void {
     if (!options.xfwd) return;
 
     let values = {
@@ -51,14 +55,16 @@ export function XHeaders(req, socket, options) {
  * Does the actual proxying. Make the request and upgrade it
  * send the Switching Protocols request and pipe the sockets.
  *
- * @param {ClientRequest} Req Request object
- * @param {Socket} Websocket
- * @param {Object} Options Config object passed to the proxy
+ * @param { IncomingMessage } req Request object
+ * @param { Socket } socket Socket object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
+ * @param { Buffer } head Buffer containing the first bytes of the incoming request
+ * @param { ProxyServer } server Server object
  *
  * @api private
  */
-export async function stream(req, socket, options, head, server, callback) {
-    let createHttpHeader = function (line, headers) {
+export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void> {
+    let createHttpHeader = function (line: string, headers: IncomingHttpHeaders): string {
         return Object.keys(headers).reduce(function (head, key) {
             let value = headers[key];
 
@@ -86,7 +92,7 @@ export async function stream(req, socket, options, head, server, callback) {
 
     // Error Handler
     proxyReq.on('error', onOutgoingError);
-    proxyReq.on('response', function (res) {
+    proxyReq.on('response', function (res: IncomingMessage) {
         // if upgrade event isn't going to happen, close the socket
 
         // @ts-ignore
@@ -97,7 +103,7 @@ export async function stream(req, socket, options, head, server, callback) {
         }
     });
 
-    proxyReq.on('upgrade', function (proxyRes, proxySocket, proxyHead) {
+    proxyReq.on('upgrade', function (proxyRes: IncomingMessage, proxySocket: Socket, proxyHead: Buffer) {
         proxySocket.on('error', onOutgoingError);
 
         // Allow us to listen when the websocket has completed
@@ -188,10 +194,4 @@ export async function stream(req, socket, options, head, server, callback) {
         }
         socket.end();
     }
-}
-
-export const wsIncoming = {
-    checkMethodAndHeader: checkMethodAndHeader,
-    XHeaders: XHeaders,
-    stream: stream,
 }

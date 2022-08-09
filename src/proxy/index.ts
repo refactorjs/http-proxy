@@ -1,28 +1,21 @@
-import type { Server } from '../types'
-import { Buffer } from 'buffer'
-import EventEmitter from 'eventemitter3';
-import http from 'http';
+import type { Server, Passthrough } from '../types'
+import http, { IncomingMessage, ServerResponse } from 'http';
 import https from 'https';
-import { webIncoming } from './passes/web.incoming';
-import { wsIncoming } from './passes/ws.incoming';
+import { Buffer } from 'buffer'
+import { Duplex } from 'stream';
+import EventEmitter from 'eventemitter3';
+import * as webIncoming from './passes/web.incoming';
+import * as wsIncoming from './passes/ws.incoming';
 
-const webPasses = Object.keys(webIncoming).map(function (pass) {
-    return webIncoming[pass];
-});
-
-const wsPasses = Object.keys(wsIncoming).map(function (pass) {
-    return wsIncoming[pass];
-});
-
-export default class ProxyServer extends EventEmitter {
+export class ProxyServer extends EventEmitter {
     options: Server.ServerOptions;
-    $server: http.Server | https.Server | undefined;
-    web: any;
-    ws: any;
-    proxyRequest: any;
-    proxyWebsocketRequest: any;
-    webPasses: Array<Function>;
-    wsPasses: Array<Function>;
+    $server: http.Server | undefined;
+
+    webPasses: Passthrough[];
+    wsPasses: Passthrough[];
+
+    web: Passthrough;
+    ws: Passthrough;
 
     static createProxyServer: (options: Server.ServerOptions) => ProxyServer
     static createServer: (options: Server.ServerOptions) => ProxyServer
@@ -32,38 +25,41 @@ export default class ProxyServer extends EventEmitter {
      * Creates the proxy server with specified options.
      * @param options - Config object passed to the proxy
      */
-    constructor(options: Server.ServerOptions) {
+    constructor(options: Server.ServerOptions = {}) {
         super();
 
-        options = options || {};
         options.prependPath = options.prependPath === false ? false : true;
 
-        this.web = this.proxyRequest = createRightProxy('web')(options);
-        this.ws = this.proxyWebsocketRequest = createRightProxy('ws')(options);
+        this.web = createRightProxy('web')(options);
+        this.ws = createRightProxy('ws')(options);
         this.options = options;
 
-        this.webPasses = webPasses;
+        this.webPasses = Object.keys(webIncoming).map(function (pass) {
+            return webIncoming[pass] as Passthrough;
+        });
 
-        this.wsPasses = wsPasses;
+        this.wsPasses = Object.keys(wsIncoming).map(function (pass) {
+            return wsIncoming[pass] as Passthrough;
+        });;
 
         super.on('error', this.onError, this);
     }
 
-    onError(err) {
+    onError(err: Error) {
         if (super.listeners('error').length === 1) {
             throw err;
         }
     }
 
-    listen(port, hostname) {
-        const closure = (req, res) => {
+    listen(port: number, hostname: string) {
+        const closure = (req: IncomingMessage, res: ServerResponse) => {
             this.web(req, res);
         };
 
         this.$server = this.options.ssl ? https.createServer(this.options.ssl, closure) : http.createServer(closure);
 
         if (this.options.ws) {
-            this.$server.on('upgrade', (req, socket, head) => {
+            this.$server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
                 this.ws(req, socket, head);
             });
         }
@@ -73,50 +69,39 @@ export default class ProxyServer extends EventEmitter {
         return this;
     }
 
-    close(callback) {
+    close(callback?: () => void) {
         if (this.$server) {
-            this.$server.close(done);
+            this.$server.close(() => {
+                this.$server = undefined;
+                if (callback) {
+                    callback.apply(null, arguments);
+                }
+            });
         }
-
-        // Wrap callback to nullify server after all open connections are closed.
-        function done() {
-            this.$server = null;
-            if (callback) {
-                callback.apply(null, arguments);
-            }
-        };
     }
 
-    before(type, passName, callback) {
-        if (type !== 'ws' && type !== 'web') {
-            throw new Error('type must be `web` or `ws`');
-        }
-
+    before(type: 'web' | 'ws', passName: string, callback: Passthrough) {
         const passes = (type === 'ws') ? this.wsPasses : this.webPasses;
-        let i: false | number = false;
+        let i = -1;
 
         passes.forEach(function (v, idx) {
             if (v.name === passName) i = idx;
         })
 
-        if (i === false) throw new Error('No such pass');
+        if (i === -1) throw new Error('No such pass');
 
         passes.splice(i, 0, callback);
     }
 
-    after(type, passName, callback) {
-        if (type !== 'ws' && type !== 'web') {
-            throw new Error('type must be `web` or `ws`');
-        }
-
+    after(type: 'web' | 'ws', passName: string, callback: Passthrough) {
         const passes = (type === 'ws') ? this.wsPasses : this.webPasses;
-        let i: false | number = false;
+        let i = -1;
 
         passes.forEach(function (v, idx) {
             if (v.name === passName) i = idx;
         })
 
-        if (i === false) throw new Error('No such pass');
+        if (i === -1) throw new Error('No such pass');
 
         passes.splice(i++, 0, callback);
     }
@@ -137,10 +122,10 @@ export default class ProxyServer extends EventEmitter {
  *
  * @api private
  */
-function createRightProxy(type: string): (options: Server.ServerOptions) => Function {
+function createRightProxy(type: 'web' | 'ws'): (options: Server.ServerOptions) => Passthrough {
     return function (options: Server.ServerOptions) {
-        return function (req, res) {
-            const passes = (type === 'ws') ? wsPasses : webPasses
+        return function (req: IncomingMessage, res: ServerResponse | Duplex) {
+            const passes = (type === 'ws') ? this.wsPasses : this.webPasses;
             let args = [].slice.call(arguments);
             let cntr = args.length - 1;
             let head;
@@ -188,3 +173,24 @@ function createRightProxy(type: string): (options: Server.ServerOptions) => Func
         }
     }
 }
+
+/**
+ * Creates the proxy server.
+ *
+ * Examples:
+ *
+ *    httpProxy.createProxyServer({ .. }, 8000)
+ *    // => '{ web: [Function], ws: [Function] ... }'
+ *
+ * @param { Server.ServerOptions } options Config object passed to the proxy
+ *
+ * @return { ProxyServer } Proxy server
+ * 
+ * @api public
+ */
+export function createProxyServer(options: Server.ServerOptions): ProxyServer {
+    return new ProxyServer(options);
+}
+
+export const createServer = createProxyServer;
+export const createProxy = createProxyServer;

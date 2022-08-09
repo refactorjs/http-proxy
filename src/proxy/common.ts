@@ -1,7 +1,12 @@
-import { webOutgoing } from './passes/web.outgoing';
+
+// @ts-nocheck
+import type { Server } from '../types'
+import type { IncomingMessage } from 'http';
+import type { Socket }  from 'net';
+import * as webOutgoing from './passes/web.outgoing';
 
 const passes = Object.keys(webOutgoing).map(function (pass) {
-    return webOutgoing[pass];
+    return webOutgoing[pass as keyof typeof webOutgoing];
 });
 
 /**
@@ -11,7 +16,7 @@ export const isSSL = /^https|wss/;
 
 const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
 
-function required(port, protocol): boolean {
+function required(port: number, protocol: string): boolean {
     protocol = protocol.split(':')[0];
     port = +port;
 
@@ -45,17 +50,17 @@ function required(port, protocol): boolean {
  * request.
  *
  * @param { Object } outgoing Base object to be filled with required properties
- * @param { Object } options Config object passed to the proxy
- * @param { ClientRequest } req Request Object
+ * @param { Server.ServerOptions } options Config object passed to the proxy
+ * @param { IncomingMessage } req Request Object
  * @param { String } forward String to select forward or target
  * 
  * @return { Object } Outgoing Object with all required properties set
  *
  * @api private
  */
-export function setupOutgoing(outgoing, options, req, forward?) {
+export function setupOutgoing(outgoing: any, options: Server.ServerOptions | Server.ServerOptions['target'], req: IncomingMessage, forward?: keyof typeof options | string): object {
 
-    const target = (options[forward || 'target']);
+    const target = options[forward  || 'target'];
 
     if (typeof target === 'object') {
         if (!target.searchParams) {
@@ -84,7 +89,7 @@ export function setupOutgoing(outgoing, options, req, forward?) {
     }
 
     if (options.auth) {
-        outgoing.auth = options.auth;
+        outgoing.auth = options.auth
     }
 
     if (options.ca) {
@@ -149,7 +154,7 @@ export function setupOutgoing(outgoing, options, req, forward?) {
     outgoing.path = [targetPath, outgoingPath].filter(Boolean).join('/').replace(/\/+/g, '/') + params
 
     if (options.changeOrigin) {
-        outgoing.headers.host = required(outgoing.port, target.protocol) && !hasPort(outgoing.host) ? outgoing.host + ':' + outgoing.port : outgoing.host;
+        outgoing.headers.host = required(outgoing.port, target.protocol) && !hasPort(outgoing.host?.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;
     }
 
     return outgoing;
@@ -171,7 +176,7 @@ export function setupOutgoing(outgoing, options, req, forward?) {
  *
  * @api private
  */
-export function setupSocket(socket) {
+export function setupSocket(socket: Socket): Socket {
     socket.setTimeout(0);
     socket.setNoDelay(true);
 
@@ -183,7 +188,7 @@ export function setupSocket(socket) {
 /**
  * Get the port number from the host. Or guess it based on the connection type.
  *
- * @param { Request } req Incoming HTTP request.
+ * @param { IncomingMessage } req Incoming HTTP request.
  *
  * @return { String } The port number.
  *
@@ -198,9 +203,9 @@ export function getPort(req) {
 /**
  * Check if the request has an encrypted connection.
  *
- * @param {Request} req Incoming HTTP request.
+ * @param { IncomingMessage } req Incoming HTTP request.
  *
- * @return {Boolean} Whether the connection is encrypted or not.
+ * @return { Boolean } Whether the connection is encrypted or not.
  *
  * @api private
  */
@@ -264,9 +269,9 @@ export function removeCookieProperty(header, property) {
 /**
  * Merges `Set-Cookie` header
  *
- * @param { String|[String] } setCookie
- * @param { String|[String] } upstreamSetCookie
- * @returns { [string] }
+ * @param { String|Array<String> } setCookie
+ * @param { String|Array<String> } upstreamSetCookie
+ * @returns { Array<String> }
  *
  * @api private
  */
@@ -288,10 +293,10 @@ export function mergeSetCookie(setCookie, upstreamSetCookie) {
 /**
  * Runs the "web-outgoing" functions.
  *
- * @param { ClientRequest } req Request object
- * @param { IncomingMessage } res Response object
- * @param { proxyResponse } res Response object from the proxy request
- * @param { Object } options options.cookieDomainRewrite: Config to rewrite cookie domain
+ * @param { IncomingMessage } req Request object
+ * @param { ServerResponse } res Response object
+ * @param { IncomingMessage } res Response object from the proxy request
+ * @param { Server.ServerOptions } options options.cookieDomainRewrite: Config to rewrite cookie domain
  *
  * @api private
  */

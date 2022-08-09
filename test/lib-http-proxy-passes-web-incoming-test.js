@@ -1,4 +1,4 @@
-import { deleteLength, timeout as _timeout, XHeaders } from '../src/proxi/passes/web.incoming.ts';
+import { deleteLength, timeout as _timeout, XHeaders } from '../src/proxy/passes/web.incoming.ts';
 import httpProxy from '../src/index.ts';
 import expect from 'expect.js';
 import concat from 'concat-stream';
@@ -657,7 +657,7 @@ describe('#httpProxy.createProxyServer.web() using own http server', function ()
     it('should proxy requests to multiple servers with different options', function (done) {
         var proxy = httpProxy.createProxyServer();
 
-        // proxies to two servers depending on url, rewriting the url as well
+        // proxyes to two servers depending on url, rewriting the url as well
         // http://127.0.0.1:8080/s1/ -> http://127.0.0.1:8081/
         // http://127.0.0.1:8080/ -> http://127.0.0.1:8082/
         function requestHandler(req, res) {
