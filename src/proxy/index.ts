@@ -1,7 +1,6 @@
 import type { Server } from '../types'
 import { Buffer } from 'buffer'
 import EventEmitter from 'eventemitter3';
-import { URL } from 'url';
 import http from 'http';
 import https from 'https';
 import { webIncoming } from './passes/web.incoming';
@@ -47,11 +46,11 @@ export default class ProxyServer extends EventEmitter {
 
         this.wsPasses = wsPasses;
 
-        this.on('error', this.onError, this);
+        super.on('error', this.onError, this);
     }
 
     onError(err) {
-        if (this.listeners('error').length === 1) {
+        if (super.listeners('error').length === 1) {
             throw err;
         }
     }

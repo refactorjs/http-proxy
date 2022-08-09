@@ -1,4 +1,4 @@
-import { setupOutgoing, setupSocket } from '../src/proxi/common.ts';
+import { setupOutgoing, setupSocket } from '../src/proxy/common.ts';
 import { parse } from 'url';
 import expect from 'expect.js';
 
