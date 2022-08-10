@@ -1,120 +1,120 @@
-import { checkMethodAndHeader, XHeaders } from '../src/proxy/passes/ws.incoming.ts';
-import expect from 'expect.js';
+import { checkMethodAndHeader, XHeaders } from '../src/proxy/passes/ws.incoming';
+import { describe, expect, it } from 'vitest';
 
-describe('src/proxy/passes/ws.incoming.js', function () {
-    describe('#checkMethodAndHeader', function () {
-        it('should drop non-GET connections', function () {
-            var destroyCalled = false,
+describe('src/proxy/passes/ws.incoming.ts', () => {
+    describe('#checkMethodAndHeader', () => {
+        it('should drop non-GET connections', () => {
+            let destroyCalled = false,
                 stubRequest = {
                     method: 'DELETE',
-                    headers: {}
+                    headers: {},
                 },
                 stubSocket = {
                     destroy: function () {
                         // Simulate Socket.destroy() method when call
                         destroyCalled = true;
-                    }
-                },
-                returnValue = checkMethodAndHeader(stubRequest, stubSocket);
-            expect(returnValue).to.be(true);
-            expect(destroyCalled).to.be(true);
-        })
+                    },
+                };
+            const returnValue = checkMethodAndHeader(stubRequest, stubSocket);
+            expect(returnValue).toBe(true);
+            expect(destroyCalled).toBe(true);
+        });
 
-        it('should drop connections when no upgrade header', function () {
-            var destroyCalled = false,
+        it('should drop connections when no upgrade header', () => {
+            let destroyCalled = false,
                 stubRequest = {
                     method: 'GET',
-                    headers: {}
+                    headers: {},
                 },
                 stubSocket = {
                     destroy: function () {
                         // Simulate Socket.destroy() method when call
                         destroyCalled = true;
-                    }
-                },
-                returnValue = checkMethodAndHeader(stubRequest, stubSocket);
-            expect(returnValue).to.be(true);
-            expect(destroyCalled).to.be(true);
-        })
+                    },
+                };
+            const returnValue = checkMethodAndHeader(stubRequest, stubSocket);
+            expect(returnValue).toBe(true);
+            expect(destroyCalled).toBe(true);
+        });
 
-        it('should drop connections when upgrade header is different of `websocket`', function () {
-            var destroyCalled = false,
-                stubRequest = {
-                    method: 'GET',
-                    headers: {
-                        upgrade: 'anotherprotocol'
-                    }
-                },
-                stubSocket = {
-                    destroy: function () {
-                        // Simulate Socket.destroy() method when call
-                        destroyCalled = true;
-                    }
-                },
-                returnValue = checkMethodAndHeader(stubRequest, stubSocket);
-            expect(returnValue).to.be(true);
-            expect(destroyCalled).to.be(true);
-        })
-
-        it('should return nothing when all is ok', function () {
-            var destroyCalled = false,
+        it('should drop connections when upgrade header is different of `websocket`', () => {
+            let destroyCalled = false,
                 stubRequest = {
                     method: 'GET',
                     headers: {
-                        upgrade: 'websocket'
-                    }
+                        upgrade: 'anotherprotocol',
+                    },
                 },
                 stubSocket = {
                     destroy: function () {
                         // Simulate Socket.destroy() method when call
                         destroyCalled = true;
-                    }
+                    },
+                };
+            const returnValue = checkMethodAndHeader(stubRequest, stubSocket);
+            expect(returnValue).toBe(true);
+            expect(destroyCalled).toBe(true);
+        });
+
+        it('should return nothing when all is ok', () => {
+            let destroyCalled = false,
+                stubRequest = {
+                    method: 'GET',
+                    headers: {
+                        upgrade: 'websocket',
+                    },
                 },
-                returnValue = checkMethodAndHeader(stubRequest, stubSocket);
-            expect(returnValue).to.be(undefined);
-            expect(destroyCalled).to.be(false);
-        })
+                stubSocket = {
+                    destroy: function () {
+                        // Simulate Socket.destroy() method when call
+                        destroyCalled = true;
+                    },
+                };
+            const returnValue = checkMethodAndHeader(stubRequest, stubSocket);
+            expect(returnValue).toBe(undefined);
+            expect(destroyCalled).toBe(false);
+        });
     });
 
-    describe('#XHeaders', function () {
-        it('return if no forward request', function () {
-            var returnValue = XHeaders({}, {}, {});
-            expect(returnValue).to.be(undefined);
+    describe('#XHeaders', () => {
+        it('return if no forward request', () => {
+            const returnValue = XHeaders({}, {}, {});
+            expect(returnValue).toBe(undefined);
         });
 
-        it('set the correct x-forwarded-* headers from req.connection', function () {
-            var stubRequest = {
+        it('set the correct x-forwarded-* headers from req.connection', () => {
+            const stubRequest = {
                 connection: {
                     remoteAddress: '192.168.1.2',
-                    remotePort: '8080'
+                    remotePort: '8080',
                 },
                 headers: {
-                    host: '192.168.1.2:8080'
-                }
-            }
-            XHeaders(stubRequest, {}, { xfwd: true });
-            expect(stubRequest.headers['x-forwarded-for']).to.be('192.168.1.2');
-            expect(stubRequest.headers['x-forwarded-port']).to.be('8080');
-            expect(stubRequest.headers['x-forwarded-proto']).to.be('ws');
-        });
-
-        it('set the correct x-forwarded-* headers from req.socket', function () {
-            var stubRequest = {
-                socket: {
-                    remoteAddress: '192.168.1.3',
-                    remotePort: '8181'
+                    host: '192.168.1.2:8080',
                 },
-                connection: {
-                    pair: true
-                },
-                headers: {
-                    host: '192.168.1.3:8181'
-                }
             };
             XHeaders(stubRequest, {}, { xfwd: true });
-            expect(stubRequest.headers['x-forwarded-for']).to.be('192.168.1.3');
-            expect(stubRequest.headers['x-forwarded-port']).to.be('8181');
-            expect(stubRequest.headers['x-forwarded-proto']).to.be('wss');
+            expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.2');
+            expect(stubRequest.headers['x-forwarded-port']).toBe('8080');
+            expect(stubRequest.headers['x-forwarded-proto']).toBe('ws');
+        });
+
+        it('set the correct x-forwarded-* headers from req.socket', () => {
+            const stubRequest = {
+                socket: {
+                    remoteAddress: '192.168.1.3',
+                    remotePort: '8181',
+                },
+                connection: {
+                    pair: true,
+                },
+                headers: {
+                    host: '192.168.1.3:8181',
+                },
+            };
+            XHeaders(stubRequest, {}, { xfwd: true });
+            expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.3');
+            expect(stubRequest.headers['x-forwarded-port']).toBe('8181');
+            expect(stubRequest.headers['x-forwarded-proto']).toBe('wss');
         });
     });
 });

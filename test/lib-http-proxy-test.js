@@ -1,75 +1,78 @@
-import httpProxy from '../src/index.ts';
-import expect from 'expect.js';
-import http from 'http';
+import { createProxyServer } from '../src/proxy';
+import { createServer, request } from 'http';
 import { connect } from 'net';
 import ws, { WebSocketServer } from 'ws';
 import io from 'socket.io';
 import SSE from 'sse';
-import clientIO from 'socket.io-client';
+import { connect as _connect } from 'socket.io-client';
+import { describe, expect, it } from 'vitest';
+import { waitForClosed } from './util';
 
 //
 // Expose a port number generator.
 // thanks to @3rd-Eden
 //
-var initialPort = 1024, gen = {};
+let initialPort = 1024;
+const gen = {};
 Object.defineProperty(gen, 'port', {
     get: function get() {
         return initialPort++;
-    }
+    },
 });
 
-describe('src/index.ts', function () {
-    describe('#createProxyServer', function () {
+describe('src/index.ts', () => {
+    describe('#createProxyServer', () => {
         it.skip('should throw without options', function () {
-            var error;
+            let error;
             try {
-                httpProxy.createProxyServer();
+                createProxyServer();
             } catch (e) {
                 error = e;
             }
 
-            expect(error).to.be.an(Error);
-        })
+            expect(error).toBeInstanceOf(Error);
+        });
 
-        it('should return an object otherwise', function () {
-            var obj = httpProxy.createProxyServer({
-                target: 'http://www.google.com:80'
+        it('should return an object otherwise', () => {
+            const obj = createProxyServer({
+                target: 'http://www.google.com:80',
             });
 
-            expect(obj.web).to.be.a(Function);
-            expect(obj.ws).to.be.a(Function);
-            expect(obj.listen).to.be.a(Function);
+            expect(obj.web).toBeInstanceOf(Function);
+            expect(obj.ws).toBeInstanceOf(Function);
+            expect(obj.listen).toBeInstanceOf(Function);
         });
     });
 
-    describe('#createProxyServer with forward options and using web-incoming passes', function () {
-        it('should pipe the request using web-incoming#stream method', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
-                forward: 'http://127.0.0.1:' + ports.source
+    describe('#createProxyServer with forward options and using web-incoming passes', () => {
+        it('should pipe the request using web-incoming#stream method', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
+                forward: 'http://127.0.0.1:' + ports.source,
             }).listen(ports.proxy);
 
-            var source = http.createServer(function (req, res) {
-                expect(req.method).to.eql('GET');
-                expect(req.headers.host.split(':')[1]).to.eql(ports.proxy);
+            const source = createServer(async function (req, res) {
+                expect(req.method).toEqual('GET');
+                expect(req.headers.host.split(':')[1]).toEqual(String(ports.proxy));
+                res.end();
                 source.close();
                 proxy.close();
-                done();
+                await waitForClosed(source, proxy);
             });
 
             source.listen(ports.source);
-            http.request('http://127.0.0.1:' + ports.proxy, function () { }).end();
-        })
+            request('http://127.0.0.1:' + ports.proxy, () => {}).end();
+        });
     });
 
-    describe('#createProxyServer using the web-incoming passes', function () {
-        it('should proxy sse', function (done) {
-            var ports = { source: gen.port, proxy: gen.port },
-                proxy = httpProxy.createProxyServer({
+    describe('#createProxyServer using the web-incoming passes', () => {
+        it('should proxy sse', async () => {
+            const ports = { source: gen.port, proxy: gen.port },
+                proxy = createProxyServer({
                     target: 'http://localhost:' + ports.source,
                 }),
                 proxyServer = proxy.listen(ports.proxy),
-                source = http.createServer(),
+                source = createServer(),
                 sse = new SSE(source, { path: '/' });
 
             sse.on('connection', function (client) {
@@ -79,178 +82,217 @@ describe('src/index.ts', function () {
 
             source.listen(ports.source);
 
-            var options = {
+            const options = {
                 hostname: 'localhost',
                 port: ports.proxy,
             };
 
-            var req = http.request(options, function (res) {
-                var streamData = '';
-                res.on('data', function (chunk) {
-                    streamData += chunk.toString('utf8');
-                });
-                res.on('end', function (chunk) {
-                    expect(streamData).to.equal(':ok\n\ndata: Hello over SSE\n\n');
-                    source.close();
-                    proxy.close();
-                    done();
-                });
-            }).end();
-        });
-
-        it('should make the request on pipe and finish it', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
-                target: 'http://127.0.0.1:' + ports.source
-            }).listen(ports.proxy);
-
-            var source = http.createServer(function (req, res) {
-                expect(req.method).to.eql('POST');
-                expect(req.headers['x-forwarded-for']).to.eql('127.0.0.1');
-                expect(req.headers.host.split(':')[1]).to.eql(ports.proxy);
-                source.close();
-                proxy.close();
-                done();
+            const serversClosed = new Promise((resolve) => {
+                request(options, function (res) {
+                    let streamData = '';
+                    res.on('data', function (chunk) {
+                        streamData += chunk.toString('utf8');
+                    });
+                    res.on('end', function (chunk) {
+                        expect(streamData).toBe(':ok\n\ndata: Hello over SSE\n\n');
+                        source.close();
+                        proxyServer.close();
+                        resolve();
+                    });
+                }).end();
             });
 
-            source.listen(ports.source);
+            await serversClosed;
+        });
 
-            http.request({
-                hostname: '127.0.0.1',
-                port: ports.proxy,
-                method: 'POST',
-                headers: {
-                    'x-forwarded-for': '127.0.0.1'
-                }
-            }, function () { }).end();
+        it('should make the request on pipe and finish it', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
+                target: 'http://127.0.0.1:' + ports.source,
+            }).listen(ports.proxy);
+
+            const serversClosed = new Promise((resolve) => {
+                const source = createServer(function (req, res) {
+                    res.end();
+                    expect(req.method).toEqual('POST');
+                    expect(req.headers['x-forwarded-for']).toEqual('127.0.0.1');
+                    expect(req.headers.host.split(':')[1]).toEqual(String(ports.proxy));
+                    source.close(() => {
+                        proxy.close(() => {
+                            resolve();
+                        });
+                    });
+                }).listen(ports.source);
+            });
+
+            request(
+                {
+                    hostname: '127.0.0.1',
+                    port: ports.proxy,
+                    method: 'POST',
+                    headers: {
+                        'x-forwarded-for': '127.0.0.1',
+                    },
+                },
+                function () { },
+            ).end();
+
+            await serversClosed;
         });
     });
 
-    describe('#createProxyServer using the web-incoming passes', function () {
-        it('should make the request, handle response and finish it', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+    describe('#createProxyServer using the web-incoming passes', () => {
+        it('should make the request, handle response and finish it', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 target: 'http://127.0.0.1:' + ports.source,
-                preserveHeaderKeyCase: true
+                preserveHeaderKeyCase: true,
             }).listen(ports.proxy);
 
-            var source = http.createServer(function (req, res) {
-                expect(req.method).to.eql('GET');
-                expect(req.headers.host.split(':')[1]).to.eql(ports.proxy);
-                res.writeHead(200, { 'Content-Type': 'text/plain' })
+            const source = createServer(function (req, res) {
+                expect(req.method).toEqual('GET');
+                expect(req.headers.host.split(':')[1]).toEqual(String(ports.proxy));
+                res.writeHead(200, { 'Content-Type': 'text/plain' });
                 res.end('Hello from ' + source.address().port);
             });
 
             source.listen(ports.source);
 
-            http.request({
-                hostname: '127.0.0.1',
-                port: ports.proxy,
-                method: 'GET'
-            }, function (res) {
-                expect(res.statusCode).to.eql(200);
-                expect(res.headers['content-type']).to.eql('text/plain');
-                if (res.rawHeaders != undefined) {
-                    expect(res.rawHeaders.indexOf('Content-Type')).not.to.eql(-1);
-                    expect(res.rawHeaders.indexOf('text/plain')).not.to.eql(-1);
-                }
+            const serversClosed = new Promise((resolve) => {
+                request(
+                    {
+                        hostname: '127.0.0.1',
+                        port: ports.proxy,
+                        method: 'GET',
+                    },
+                    function (res) {
+                        expect(res.statusCode).toEqual(200);
+                        expect(res.headers['content-type']).toEqual('text/plain');
+                        if (res.rawHeaders != undefined) {
+                            expect(res.rawHeaders.indexOf('Content-Type')).not.toEqual(-1);
+                            expect(res.rawHeaders.indexOf('text/plain')).not.toEqual(-1);
+                        }
 
-                res.on('data', function (data) {
-                    expect(data.toString()).to.eql('Hello from ' + ports.source);
-                });
+                        res.on('data', function (data) {
+                            expect(data.toString()).toEqual('Hello from ' + ports.source);
+                            source.close(() => {
+                                proxy.close(() => {
+                                    resolve();
+                                });
+                            });
+                        });
+                    },
+                ).end();
+            });
 
-                res.on('end', function () {
-                    source.close();
-                    proxy.close();
-                    done();
-                });
-            }).end();
+            await serversClosed;
         });
     });
 
-    describe('#httpProxy.createProxyServer() method with error response', function () {
-        it('should make the request and emit the error event', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
-                target: 'http://127.0.0.1:' + ports.source
+    describe('#createProxyServer() method with error response', () => {
+        it('should make the request and emit the error event', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
+                target: 'http://127.0.0.1:' + ports.source,
             });
 
-            proxy.on('error', function (err) {
-                expect(err).to.be.an(Error);
-                expect(err.code).to.be('ECONNREFUSED');
-                proxy.close();
-                done();
-            })
+            const serversClosed = new Promise((resolve) => {
+                proxy.on('error', function (err, req, res) {
+                    expect(err).toBeInstanceOf(Error);
+                    expect(err.code).toBe('ECONNREFUSED');
+                    res.end();
+                    proxy.close(() => {
+                        resolve();
+                    });
+                });
+            });
 
             proxy.listen(ports.proxy);
 
-            http.request({
-                hostname: '127.0.0.1',
-                port: ports.proxy,
-                method: 'GET',
-            }, function () { }).end();
+            request(
+                {
+                    hostname: '127.0.0.1',
+                    port: ports.proxy,
+                    method: 'GET',
+                },
+                function () { },
+            ).end();
+
+            await serversClosed;
         });
     });
 
-    describe('#createProxyServer setting the correct timeout value', function () {
-        it('should hang up the socket at the timeout', function (done) {
-            this.timeout(30);
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+    describe('#createProxyServer setting the correct timeout value', () => {
+        it('should hang up the socket at the timeout', async () => {
+            // this.timeout(30);
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 target: 'http://127.0.0.1:' + ports.source,
-                timeout: 3
+                timeout: 3,
             }).listen(ports.proxy);
 
             proxy.on('error', function (e) {
-                expect(e).to.be.an(Error);
-                expect(e.code).to.be.eql('ECONNRESET');
+                expect(e).toBeInstanceOf(Error);
+                expect(e.code).toEqual('ECONNRESET');
             });
 
-            var source = http.createServer(function (req, res) {
+            const source = createServer(function (req, res) {
                 setTimeout(function () {
                     res.end('At this point the socket should be closed');
-                }, 5)
+                }, 5);
             });
 
             source.listen(ports.source);
 
-            var testReq = http.request({
-                hostname: '127.0.0.1',
-                port: ports.proxy,
-                method: 'GET',
-            }, function () { });
+            const testReq = request(
+                {
+                    hostname: '127.0.0.1',
+                    port: ports.proxy,
+                    method: 'GET',
+                },
+                function () { },
+            );
 
-            testReq.on('error', function (e) {
-                expect(e).to.be.an(Error);
-                expect(e.code).to.be.eql('ECONNRESET');
-                proxy.close();
-                source.close();
-                done();
+            const serversClosed = new Promise((resolve) => {
+                testReq.on('error', function (e) {
+                    expect(e).toBeInstanceOf(Error);
+                    expect(e.code).toEqual('ECONNRESET');
+                    source.close(() => {
+                        proxy.close(() => {
+                            resolve();
+                        });
+                    });
+                });
             });
 
             testReq.end();
+
+            await serversClosed;
         });
     });
 
-    describe('#createProxyServer with xfwd option', function () {
-        it('should not throw on empty http host header', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+    describe('#createProxyServer with xfwd option', () => {
+        it('should not throw on empty http host header', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 forward: 'http://127.0.0.1:' + ports.source,
-                xfwd: true
+                xfwd: true,
             }).listen(ports.proxy);
 
-            var source = http.createServer(function (req, res) {
-                expect(req.method).to.eql('GET');
-                expect(req.headers.host.split(':')[1]).to.eql(ports.source);
-                source.close();
-                proxy.close();
-                done();
+            const serversClosed = new Promise((resolve) => {
+                const source = createServer(function (req, res) {
+                    expect(req.method).toEqual('GET');
+                    expect(req.headers.host.split(':')[1]).toEqual(String(ports.source));
+                    res.end();
+                    source.close(() => {
+                        proxy.close(() => {
+                            resolve();
+                        });
+                    });
+                }).listen(ports.source);
             });
 
-            source.listen(ports.source);
-
-            var socket = connect({ port: ports.proxy }, function () {
+            const socket = connect({ port: ports.proxy }, function () {
                 socket.write('GET / HTTP/1.0\r\n\r\n');
             });
 
@@ -264,55 +306,97 @@ describe('src/index.ts', function () {
             });
 
             socket.on('end', function () {
-                expect('Socket to finish').to.be.ok();
+                expect('Socket to finish').toBeTruthy();
             });
 
-            //      http.http.request('http://127.0.0.1:' + ports.proxy, function() {}).end();
-        })
+            await serversClosed;
+        });
     });
 
-    describe('#createProxyServer using the ws-incoming passes', function () {
-        it('should proxy the websockets stream', function (done) {
-            var ports = { source: gen.port, proxy: gen.port },
-                proxy = httpProxy.createProxyServer({
-                    target: 'ws://127.0.0.1:' + ports.source,
-                    ws: true
-                }),
+    // describe('#createProxyServer using the web-incoming passes', function () {
+    //   it('should emit events correctly', function(done) {
+    //     var proxy = httpProxy.createProxyServer({
+    //       target: 'http://127.0.0.1:8080'
+    //     }),
+
+    //     proxyServer = proxy.listen('8081'),
+
+    //     source = http.createServer(function(req, res) {
+    //       expect(req.method).to.eql('GET');
+    //       expect(req.headers.host.split(':')[1]).to.eql('8081');
+    //       res.writeHead(200, {'Content-Type': 'text/plain'})
+    //       res.end('Hello from ' + source.address().port);
+    //     }),
+
+    //     events = [];
+
+    //     source.listen('8080');
+
+    //     proxy.ee.on('http-proxy:**', function (uno, dos, tres) {
+    //       events.push(this.event);
+    //     })
+
+    //     http.request({
+    //       hostname: '127.0.0.1',
+    //       port: '8081',
+    //       method: 'GET',
+    //     }, function(res) {
+    //       expect(res.statusCode).to.eql(200);
+
+    //       res.on('data', function (data) {
+    //         expect(data.toString()).to.eql('Hello from 8080');
+    //       });
+
+    //       res.on('end', function () {
+    //         expect(events).to.contain('http-proxy:outgoing:web:begin');
+    //         expect(events).to.contain('http-proxy:outgoing:web:end');
+    //         source.close();
+    //         proxyServer.close();
+    //         done();
+    //       });
+    //     }).end();
+    //   });
+    // });
+
+    describe('#createProxyServer using the ws-incoming passes', () => {
+        it('should proxy the websockets stream', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
+                target: 'ws://127.0.0.1:' + ports.source,
+                ws: true,
+            }),
                 proxyServer = proxy.listen(ports.proxy),
-                server = http.createServer(),
-                destiny = new WebSocketServer({ server });
+                destiny = new WebSocketServer({ port: ports.source }, function () {
+                    const client = new ws('ws://127.0.0.1:' + ports.proxy);
 
-            function startWebSockets() {
-                var client = new ws('ws://127.0.0.1:' + ports.proxy);
+                    client.on('open', function () {
+                        client.send('hello there');
+                    });
 
-                client.on('open', function () {
-                    client.send('hello there');
+                    client.on('message', function (msg) {
+                        expect(msg.toString()).toBe('Hello over websockets');
+                        client.close();
+                        proxyServer.close();
+                        destiny.close();
+                    });
                 });
-
-                client.on('message', function (msg) {
-                    expect(msg.toString()).to.be('Hello over websockets');
-                    proxyServer.close();
-                    server.close();
-                    done();
-                });
-            }
-            server.listen(ports.source);
-            server.on('listening', startWebSockets);
 
             destiny.on('connection', function (socket) {
                 socket.on('message', function (msg) {
-                    expect(msg.toString()).to.be('hello there');
+                    expect(msg.toString()).toBe('hello there');
                     socket.send('Hello over websockets');
                 });
             });
+
+            await waitForClosed(proxyServer);
         });
 
-        it('should emit error on proxy error', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+        it('should emit error on proxy error', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 // note: we don't ever listen on this port
                 target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
+                ws: true,
             }),
                 proxyServer = proxy.listen(ports.proxy),
                 client = new ws('ws://127.0.0.1:' + ports.proxy);
@@ -321,45 +405,47 @@ describe('src/index.ts', function () {
                 client.send('hello there');
             });
 
-            var count = 0;
-            function maybe_done() {
-                count += 1;
-                if (count === 2) done();
-            }
-
-            client.on('error', function (err) {
-                expect(err).to.be.an(Error);
-                expect(err.code).to.be('ECONNRESET');
-                maybe_done();
+            const clientPromise = new Promise((resolve) => {
+                client.on('error', function (err) {
+                    expect(err).toBeInstanceOf(Error);
+                    expect(err.code).toBe('ECONNRESET');
+                    resolve();
+                });
             });
 
-            proxy.on('error', function (err) {
-                expect(err).to.be.an(Error);
-                expect(err.code).to.be('ECONNREFUSED');
-                proxyServer.close();
-                maybe_done();
+            const proxyPromise = new Promise((resolve) => {
+                proxy.on('error', function (err) {
+                    expect(err).toBeInstanceOf(Error);
+                    expect(err.code).toBe('ECONNREFUSED');
+                    proxyServer.close(() => {
+                        resolve();
+                    });
+                });
             });
+
+            await clientPromise;
+            await proxyPromise;
         });
 
-        it('should close client socket if upstream is closed before upgrade', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var server = http.createServer();
+        it('should close client socket if upstream is closed before upgrade', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const server = createServer();
             server.on('upgrade', function (req, socket, head) {
-                var response = [
+                const response = [
                     'HTTP/1.1 404 Not Found',
                     'Content-type: text/html',
                     '',
-                    ''
+                    '',
                 ];
                 socket.write(response.join('\r\n'));
                 socket.end();
             });
             server.listen(ports.source);
 
-            var proxy = httpProxy.createProxyServer({
+            const proxy = createProxyServer({
                 // note: we don't ever listen on this port
                 target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
+                ws: true,
             }),
                 proxyServer = proxy.listen(ports.proxy),
                 client = new ws('ws://127.0.0.1:' + ports.proxy);
@@ -368,234 +454,259 @@ describe('src/index.ts', function () {
                 client.send('hello there');
             });
 
-            client.on('error', function (err) {
-                expect(err).to.be.an(Error);
-                proxyServer.close();
-                done();
+            const serverClosed = new Promise((resolve) => {
+                client.on('error', function (err) {
+                    expect(err).toBeInstanceOf(Error);
+                    proxyServer.close(() => {
+                        resolve();
+                    });
+                });
             });
         });
 
-        it('should proxy a socket.io stream', function (done) {
-            var ports = { source: gen.port, proxy: gen.port },
-                proxy = httpProxy.createProxyServer({
-                    target: 'ws://127.0.0.1:' + ports.source,
-                    ws: true
-                }),
-                proxyServer = proxy.listen(ports.proxy),
-                server = http.createServer(),
-                destiny = io.listen(server);
+        it('should proxy a socket.io stream', () => {
+            const ports = { source: gen.port, proxy: gen.port }
+            const proxy = createProxyServer({
+                target: 'ws://127.0.0.1:' + ports.source,
+                ws: true,
+            })
+            const proxyServer = proxy.listen(ports.proxy);
+            const server = createServer();
+            const destiny = io.listen(server);
 
+            let serversClosed;
             function startSocketIo() {
-                var client = clientIO.connect('ws://127.0.0.1:' + ports.proxy);
+                const client = _connect('ws://127.0.0.1:' + ports.proxy);
 
                 client.on('connect', function () {
                     client.emit('incoming', 'hello there');
                 });
 
                 client.on('outgoing', function (data) {
-                    expect(data).to.be('Hello over websockets');
-                    proxyServer.close();
-                    server.close();
-                    done();
+                    expect(data).toBe('Hello over websockets');
+                    serversClosed = new Promise((resolve) => {
+                        proxyServer.close(() => {
+                            server.close(() => {
+                                resolve();
+                            });
+                        });
+                    });
                 });
             }
+
             server.listen(ports.source);
             server.on('listening', startSocketIo);
 
             destiny.sockets.on('connection', function (socket) {
                 socket.on('incoming', function (msg) {
-                    expect(msg).to.be('hello there');
+                    expect(msg).toBe('hello there');
                     socket.emit('outgoing', 'Hello over websockets');
                 });
-            })
+            });
+
+            serversClosed;
         });
 
-
-        it('should emit open and close events when socket.io client connects and disconnects', function (done) {
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+        it('should emit open and close events when socket.io client connects and disconnects', () => {
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
+                ws: true,
             });
-            var proxyServer = proxy.listen(ports.proxy);
-            var server = http.createServer();
-            var destiny = io.listen(server);
+            const proxyServer = proxy.listen(ports.proxy);
+            const server = createServer();
+            const destiny = io.listen(server);
 
             function startSocketIo() {
-                var client = clientIO.connect('ws://127.0.0.1:' + ports.proxy, { rejectUnauthorized: null });
+                const client = _connect('ws://127.0.0.1:' + ports.proxy, {
+                    rejectUnauthorized: null,
+                });
                 client.on('connect', function () {
                     client.disconnect();
                 });
             }
-            var count = 0;
+
+            let count = 0;
+            let serversClosed;
 
             proxyServer.on('open', function () {
                 count += 1;
-
             });
 
             proxyServer.on('close', function () {
-                proxyServer.close();
-                server.close();
-                destiny.close();
-                if (count == 1) { done(); }
+                serversClosed = new Promise((resolve) => {
+                    proxyServer.close(() => {
+                        server.close(() => {
+                            destiny.close(() => {
+                                if (count === 1) {
+                                    resolve();
+                                }
+                            });
+                        });
+                    });
+                })
             });
 
             server.listen(ports.source);
             server.on('listening', startSocketIo);
 
+            serversClosed;
         });
 
-        it('should detect a proxyReq event and modify headers', function (done) {
-            var ports = { source: gen.port, proxy: gen.port },
-                proxy,
-                proxyServer,
-                destiny;
+        it('should pass all set-cookie headers to client', async () => {
+            const serversClosed = new Promise((resolve) => {
+                const ports = { source: gen.port, proxy: gen.port };
+                const proxy = createProxyServer({
+                    target: 'ws://127.0.0.1:' + ports.source,
+                    ws: true,
+                })
+                const proxyServer = proxy.listen(ports.proxy)
+                const key = Buffer.from(Math.random().toString()).toString('base64');
+                const destiny = new WebSocketServer({ port: ports.source }, function () {
+                    const requestOptions = {
+                        port: ports.proxy,
+                        host: '127.0.0.1',
+                        headers: {
+                            Connection: 'Upgrade',
+                            Upgrade: 'websocket',
+                            Host: 'ws://127.0.0.1',
+                            'Sec-WebSocket-Version': 13,
+                            'Sec-WebSocket-Key': key,
+                        },
+                    };
 
-            proxy = httpProxy.createProxyServer({
+                    const req = request(requestOptions);
+
+                    req.on('upgrade', function (req, socket, upgradeHead) {
+                        expect(req.headers['set-cookie'].length).toBe(2);
+                        socket.end();
+                    });
+
+                    req.on('close', () => {
+                        proxyServer.close(() => {
+                            destiny.close(() => {
+                                resolve();
+                            });
+                        });
+                    });
+
+                    req.end();
+                });
+
+                destiny.on('headers', function (headers) {
+                    headers.push('Set-Cookie: test1=test1');
+                    headers.push('Set-Cookie: test2=test2');
+                });
+            });
+
+            await serversClosed;
+        });
+
+        it('should detect a proxyReq event and modify headers', async () => {
+            const ports = { source: gen.port, proxy: gen.port };
+
+            const proxy = createProxyServer({
                 target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
+                ws: true,
             });
 
             proxy.on('proxyReqWs', function (proxyReq, req, socket, options, head) {
                 proxyReq.setHeader('X-Special-Proxy-Header', 'foobar');
             });
 
-            proxyServer = proxy.listen(ports.proxy);
+            const proxyServer = proxy.listen(ports.proxy);
 
-            destiny = new WebSocketServer({ port: ports.source }, function () {
-                var client = new ws('ws://127.0.0.1:' + ports.proxy);
-
-                client.on('open', function () {
-                    client.send('hello there');
-                });
-
-                client.on('message', function (msg) {
-                    expect(msg.toString()).to.be('Hello over websockets');
-                    client.close();
-                    proxyServer.close();
-                    destiny.close();
-                    done();
-                });
-            });
-
-            destiny.on('connection', function (socket, upgradeReq) {
-                expect(upgradeReq.headers['x-special-proxy-header']).to.eql('foobar');
-
-                socket.on('message', function (msg) {
-                    expect(msg.toString()).to.be('hello there');
-                    socket.send('Hello over websockets');
-                });
-            });
-        });
-
-        it('should detect a proxyReq event and modify headers with async handler', function (done) {
-            var ports = { source: gen.port, proxy: gen.port },
-                proxy,
-                proxyServer,
-                destiny;
-
-            proxy = httpProxy.createProxyServer({
-                target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
-            });
-
-            proxy.on('proxyReqWs', function (proxyReq, req, socket, options, head, asyncContext) {
-                asyncContext(async function () {
-                    proxyReq.setHeader('X-Special-Proxy-Header', 'async-foobar');
-                });
-            });
-
-            proxyServer = proxy.listen(ports.proxy);
-
-            destiny = new WebSocketServer({ port: ports.source }, function () {
-                var client = new ws('ws://127.0.0.1:' + ports.proxy);
+            const destiny = new WebSocketServer({ port: ports.source }, function () {
+                const client = new ws('ws://127.0.0.1:' + ports.proxy);
 
                 client.on('open', function () {
                     client.send('hello there');
                 });
 
                 client.on('message', function (msg) {
-                    expect(msg.toString()).to.be('Hello over websockets');
+                    expect(msg.toString()).toBe('Hello over websockets');
                     client.close();
                     proxyServer.close();
                     destiny.close();
-                    done();
                 });
             });
 
             destiny.on('connection', function (socket, upgradeReq) {
-                expect(upgradeReq.headers['x-special-proxy-header']).to.eql('async-foobar');
+                expect(upgradeReq.headers['x-special-proxy-header']).toEqual('foobar');
 
                 socket.on('message', function (msg) {
-                    expect(msg.toString()).to.be('hello there');
+                    expect(msg.toString()).toBe('hello there');
                     socket.send('Hello over websockets');
                 });
             });
+
+            await waitForClosed(proxyServer);
         });
 
-        it('should forward frames with single frame payload (including on node 4.x)', function (done) {
-            var payload = Array(65529).join('0');
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+        it('should forward frames with single frame payload (including on node 4.x)', async () => {
+            const payload = Array(65529).join('0');
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
+                ws: true,
             }),
                 proxyServer = proxy.listen(ports.proxy),
                 destiny = new WebSocketServer({ port: ports.source }, function () {
-                    var client = new ws('ws://127.0.0.1:' + ports.proxy);
+                    const client = new ws('ws://127.0.0.1:' + ports.proxy);
 
                     client.on('open', function () {
                         client.send(payload);
                     });
 
                     client.on('message', function (msg) {
-                        expect(msg.toString()).to.be('Hello over websockets');
+                        expect(msg.toString()).toBe('Hello over websockets');
                         client.close();
                         proxyServer.close();
                         destiny.close();
-                        done();
                     });
                 });
 
             destiny.on('connection', function (socket) {
                 socket.on('message', function (msg) {
-                    expect(msg.toString()).to.be(payload);
+                    expect(msg.toString()).toBe(payload);
                     socket.send('Hello over websockets');
                 });
             });
+
+            await waitForClosed(proxyServer);
         });
 
-        it('should forward continuation frames with big payload (including on node 4.x)', function (done) {
-            var payload = Array(65530).join('0');
-            var ports = { source: gen.port, proxy: gen.port };
-            var proxy = httpProxy.createProxyServer({
+        it('should forward continuation frames with big payload (including on node 4.x)', async () => {
+            const payload = Array(65530).join('0');
+            const ports = { source: gen.port, proxy: gen.port };
+            const proxy = createProxyServer({
                 target: 'ws://127.0.0.1:' + ports.source,
-                ws: true
+                ws: true,
             }),
                 proxyServer = proxy.listen(ports.proxy),
                 destiny = new WebSocketServer({ port: ports.source }, function () {
-                    var client = new ws('ws://127.0.0.1:' + ports.proxy);
+                    const client = new ws('ws://127.0.0.1:' + ports.proxy);
 
                     client.on('open', function () {
                         client.send(payload);
                     });
 
                     client.on('message', function (msg) {
-                        expect(msg.toString()).to.be('Hello over websockets');
+                        expect(msg.toString()).toBe('Hello over websockets');
                         client.close();
                         proxyServer.close();
                         destiny.close();
-                        done();
                     });
                 });
 
             destiny.on('connection', function (socket) {
                 socket.on('message', function (msg) {
-                    expect(msg.toString()).to.be(payload);
+                    expect(msg.toString()).toBe(payload);
                     socket.send('Hello over websockets');
                 });
             });
+
+            await waitForClosed(proxyServer);
         });
     });
 });

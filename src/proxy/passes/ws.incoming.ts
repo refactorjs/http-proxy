@@ -184,9 +184,9 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         }
     }
 
-    proxyReq.end();
+    return proxyReq.end();
 
-    function onOutgoingError(err) {
+    function onOutgoingError(err: Error) {
         if (callback) {
             callback(err, req, socket);
         } else {

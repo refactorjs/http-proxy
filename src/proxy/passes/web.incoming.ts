@@ -9,12 +9,6 @@ import followRedirects from 'follow-redirects';
 
 const nativeAgents = { http: http, https: https };
 
-// 'aborted' event stopped working reliably on v15.5.0 and was later removed entirely
-const hasAbortedEvent = (function () {
-    var ver = process.versions.node.split('.').map(Number);
-    return ver[0] <= 14 || ver[0] === 15 && ver[1] <= 4;
-}());
-
 /**
  * Sets `content-length` to '0' if request is of DELETE type.
  *
@@ -85,7 +79,7 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
  *
  * @api private
  */
-export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: ( err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
+export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
 
     // And we begin!
     server.emit('start', req, res, options.target || options.forward);
@@ -129,23 +123,20 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     // show an error page at the initial request
     if (options.proxyTimeout) {
         proxyReq.setTimeout(options.proxyTimeout, function () {
-            proxyReq.abort();
+            proxyReq.destroy();
         });
     }
 
     // Ensure we abort proxy if request is aborted
-    if (hasAbortedEvent) {
-        req.on('aborted', function () {
-            proxyReq.abort();
-        });
-    } else {
-        res.on('close', function () {
-            var aborted = !res.writableFinished;
-            if (aborted) {
-                proxyReq.abort();
-            }
-        });
-    }
+    req.on('aborted', function () {
+        proxyReq.destroy();
+    });
+
+    res.on('close', function () {
+        if (res.destroyed) {
+            proxyReq.destroy();
+        }
+    });
 
     // handle errors in proxy and incoming request, just like for forward proxy
     const proxyError = createErrorHandler(proxyReq, options.target);
@@ -155,9 +146,10 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     function createErrorHandler(proxyReq, url) {
         return function proxyError(err) {
-            if ((req.aborted || req.socket.destroyed) && err.code === 'ECONNRESET') {
+            if (req.socket.destroyed && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, url);
-                return proxyReq.abort();
+                proxyReq.destroy();
+                return;
             }
 
             if (callback) {
@@ -170,39 +162,31 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     pipeline(options.buffer || req, proxyReq, () => { });
 
-    proxyReq.on('response', function (proxyRes) {
-        proxyRes.abort = function () {
-            proxyRes.aborted = true;
-            proxyReq.abort();
-            proxyRes.abort = function () { };
-        };
-
+    proxyReq.on('response', function (proxyRes: IncomingMessage) {
         if (server) {
             server.emit('proxyRes', proxyRes, req, res, options);
         }
 
         const selfHandle = typeof (options.selfHandleResponse) === 'function' ? options.selfHandleResponse(proxyRes, req, res) : options.selfHandleResponse;
 
-        if (!proxyRes.aborted) {
-            if (!res.headersSent && (!selfHandle || options.forcePasses)) {
-                common.runWebOutgoingPasses(req, res, proxyRes, options);
-            }
+        if (!res.headersSent && (!selfHandle || options.forcePasses)) {
+            common.runWebOutgoingPasses(req, res, proxyRes, options);
+        }
 
-            if (!res.finished) {
-                // Allow us to listen when the proxy has completed
-                proxyRes.on('end', function () {
-                    if (server) {
-                        server.emit('end', req, res, proxyRes);
-                    }
-                });
-                // We pipe to the response unless its expected to be handled by the user
-                if (!selfHandle) {
-                    pipeline(proxyRes, res, () => { });
-                }
-            } else {
+        if (!res.finished) {
+            // Allow us to listen when the proxy has completed
+            proxyRes.on('end', function () {
                 if (server) {
                     server.emit('end', req, res, proxyRes);
                 }
+            });
+            // We pipe to the response unless its expected to be handled by the user
+            if (!selfHandle) {
+                pipeline(proxyRes, res, () => { });
+            }
+        } else {
+            if (server) {
+                server.emit('end', req, res, proxyRes);
             }
         }
     });

@@ -1,12 +1,13 @@
-import { setupOutgoing, setupSocket } from '../src/proxy/common.ts';
+import { setupOutgoing, setupSocket } from '../src/proxy/common';
 import { parse } from 'url';
-import expect from 'expect.js';
+import { describe, expect, it } from 'vitest';
 
-describe('src/proxy/common.ts', function () {
-    describe('#setupOutgoing', function () {
-        it('should setup the correct headers', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
+describe('src/proxy/common.ts', () => {
+    describe('#setupOutgoing', () => {
+        it('should setup the correct headers', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: '?',
                     target: {
@@ -14,37 +15,38 @@ describe('src/proxy/common.ts', function () {
                         hostname: 'how',
                         socketPath: 'are',
                         port: 'you',
-                        searchParams: new URLSearchParams()
                     },
-                    headers: { 'fizz': 'bang', 'overwritten': true },
+                    headers: { fizz: 'bang', overwritten: true },
                     localAddress: 'local.address',
-                    auth: 'username:pass'
+                    auth: 'username:pass',
                 },
                 {
                     method: 'i',
                     url: 'am',
-                    headers: { 'pro': 'xy', 'overwritten': false }
-                });
+                    headers: { pro: 'xy', overwritten: false },
+                },
+            );
 
-            expect(outgoing.host).to.eql('hey');
-            expect(outgoing.hostname).to.eql('how');
-            expect(outgoing.socketPath).to.eql('are');
-            expect(outgoing.port).to.eql('you');
-            expect(outgoing.agent).to.eql('?');
+            expect(outgoing.host).toEqual('hey');
+            expect(outgoing.hostname).toEqual('how');
+            expect(outgoing.socketPath).toEqual('are');
+            expect(outgoing.port).toEqual('you');
+            expect(outgoing.agent).toEqual('?');
 
-            expect(outgoing.method).to.eql('i');
-            expect(outgoing.path).to.eql('/am');
+            expect(outgoing.method).toEqual('i');
+            expect(outgoing.path).toEqual('/am');
 
-            expect(outgoing.headers.pro).to.eql('xy');
-            expect(outgoing.headers.fizz).to.eql('bang');
-            expect(outgoing.headers.overwritten).to.eql(true);
-            expect(outgoing.localAddress).to.eql('local.address');
-            expect(outgoing.auth).to.eql('username:pass');
+            expect(outgoing.headers.pro).toEqual('xy');
+            expect(outgoing.headers.fizz).toEqual('bang');
+            expect(outgoing.headers.overwritten).toEqual(true);
+            expect(outgoing.localAddress).toEqual('local.address');
+            expect(outgoing.auth).toEqual('username:pass');
         });
 
-        it('should not override agentless upgrade header', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
+        it('should not override agentless upgrade header', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: undefined,
                     target: {
@@ -52,21 +54,22 @@ describe('src/proxy/common.ts', function () {
                         hostname: 'how',
                         socketPath: 'are',
                         port: 'you',
-                        searchParams: new URLSearchParams()
                     },
-                    headers: { 'connection': 'upgrade' },
+                    headers: { connection: 'upgrade' },
                 },
                 {
                     method: 'i',
                     url: 'am',
-                    headers: { 'pro': 'xy', 'overwritten': false }
-                });
-            expect(outgoing.headers.connection).to.eql('upgrade');
+                    headers: { pro: 'xy', overwritten: false },
+                },
+            );
+            expect(outgoing.headers.connection).toEqual('upgrade');
         });
 
-        it('should not override agentless connection: contains upgrade', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
+        it('should not override agentless connection: contains upgrade', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: undefined,
                     target: {
@@ -74,22 +77,23 @@ describe('src/proxy/common.ts', function () {
                         hostname: 'how',
                         socketPath: 'are',
                         port: 'you',
-                        searchParams: new URLSearchParams()
                     },
-                    headers: { 'connection': 'keep-alive, upgrade' }, // this is what Firefox sets
+                    headers: { connection: 'keep-alive, upgrade' }, // this is what Firefox sets
                 },
                 {
                     method: 'i',
                     url: 'am',
-                    headers: { 'pro': 'xy', 'overwritten': false }
-                });
-            expect(outgoing.headers.connection).to.eql('keep-alive, upgrade');
+                    headers: { pro: 'xy', overwritten: false },
+                },
+            );
+            expect(outgoing.headers.connection).toEqual('keep-alive, upgrade');
         });
 
-        it('should override agentless connection: contains improper upgrade', function () {
+        it('should override agentless connection: contains improper upgrade', () => {
             // sanity check on upgrade regex
-            var outgoing = {};
-            setupOutgoing(outgoing,
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: undefined,
                     target: {
@@ -97,21 +101,22 @@ describe('src/proxy/common.ts', function () {
                         hostname: 'how',
                         socketPath: 'are',
                         port: 'you',
-                        searchParams: new URLSearchParams()
                     },
-                    headers: { 'connection': 'keep-alive, not upgrade' },
+                    headers: { connection: 'keep-alive, not upgrade' },
                 },
                 {
                     method: 'i',
                     url: 'am',
-                    headers: { 'pro': 'xy', 'overwritten': false }
-                });
-            expect(outgoing.headers.connection).to.eql('close');
+                    headers: { pro: 'xy', overwritten: false },
+                },
+            );
+            expect(outgoing.headers.connection).toEqual('close');
         });
 
-        it('should override agentless non-upgrade header to close', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
+        it('should override agentless non-upgrade header to close', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: undefined,
                     target: {
@@ -119,31 +124,28 @@ describe('src/proxy/common.ts', function () {
                         hostname: 'how',
                         socketPath: 'are',
                         port: 'you',
-                        searchParams: new URLSearchParams()
                     },
-                    headers: { 'connection': 'xyz' },
+                    headers: { connection: 'xyz' },
                 },
                 {
                     method: 'i',
                     url: 'am',
-                    headers: { 'pro': 'xy', 'overwritten': false }
-                });
-            expect(outgoing.headers.connection).to.eql('close');
+                    headers: { pro: 'xy', overwritten: false },
+                },
+            );
+            expect(outgoing.headers.connection).toEqual('close');
         });
 
-        it('should set the agent to false if none is given', function () {
-            var outgoing = {};
-
-            setupOutgoing(outgoing, {
-                target: new URL('http://localhost')
-            }, { url: '/', headers: {} });
-
-            expect(outgoing.agent).to.eql(false);
+        it('should set the agent to false if none is given', () => {
+            const outgoing = {};
+            setupOutgoing(outgoing, { target: new URL('http://localhost') }, { url: '/' });
+            expect(outgoing.agent).toEqual(false);
         });
 
-        it('set the port according to the protocol', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
+        it('set the port according to the protocol', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: '?',
                     target: {
@@ -151,214 +153,230 @@ describe('src/proxy/common.ts', function () {
                         hostname: 'are',
                         socketPath: 'you',
                         protocol: 'https:',
-                        searchParams: new URLSearchParams()
-                    }
+                    },
                 },
                 {
                     method: 'i',
                     url: 'am',
-                    headers: { pro: 'xy' }
-                });
-
-            expect(outgoing.host).to.eql('how');
-            expect(outgoing.hostname).to.eql('are');
-            expect(outgoing.socketPath).to.eql('you');
-            expect(outgoing.agent).to.eql('?');
-
-            expect(outgoing.method).to.eql('i');
-            expect(outgoing.path).to.eql('/am');
-            expect(outgoing.headers.pro).to.eql('xy');
-
-            expect(outgoing.port).to.eql(443);
-        });
-
-        it('should keep the original target path in the outgoing path', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {
-                    pathname: 'some-path',
-                    searchParams: new URLSearchParams()
-                }
-            }, { url: 'am', headers: {} });
-
-            expect(outgoing.path).to.eql('some-path/am');
-        });
-
-        it('should keep the original forward path in the outgoing path', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {},
-                forward: {
-                    pathname: 'some-path'
-                }
-            }, { url: 'am', headers: {} }, 'forward');
-
-            expect(outgoing.path).to.eql('some-path/am');
-        });
-
-        it('should properly detect https/wss protocol without the colon', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {
-                    protocol: 'https',
-                    host: 'whatever.com',
-                    searchParams: new URLSearchParams()
-                }
-            }, { url: '/', headers: {} });
-
-            expect(outgoing.port).to.eql(443);
-        });
-
-        it('should not prepend the target path to the outgoing path with prependPath = false', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {
-                    pathname: 'hellothere',
-                    searchParams: new URLSearchParams()
+                    headers: { pro: 'xy' },
                 },
-                prependPath: false
-            }, { url: 'hi', headers: {} });
+            );
 
-            expect(outgoing.path).to.eql('/hi');
-        })
+            expect(outgoing.host).toEqual('how');
+            expect(outgoing.hostname).toEqual('are');
+            expect(outgoing.socketPath).toEqual('you');
+            expect(outgoing.agent).toEqual('?');
 
-        it('should properly join paths', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {
-                    pathname: '/forward',
-                    searchParams: new URLSearchParams()
+            expect(outgoing.method).toEqual('i');
+            expect(outgoing.path).toEqual('/am');
+            expect(outgoing.headers.pro).toEqual('xy');
+
+            expect(outgoing.port).toEqual(443);
+        });
+
+        it('should keep the original target path in the outgoing path', () => {
+            const outgoing = {};
+            setupOutgoing(outgoing, { target: { path: 'some-path' } }, { url: 'am' });
+
+            expect(outgoing.path).toEqual('some-path/am');
+        });
+
+        it('should keep the original forward path in the outgoing path', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
+                {
+                    target: {},
+                    forward: {
+                        path: 'some-path',
+                    },
                 },
-            }, { url: '/static/path', headers: {} });
-
-            expect(outgoing.path).to.eql('/forward/static/path');
-        })
-
-        it('should not modify the query string', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {
-                    pathname: '/forward',
-                    searchParams: new URLSearchParams()
+                {
+                    url: 'am',
                 },
-            }, { url: '/?foo=bar//&target=http://foobar.com/?a=1%26b=2&other=2', headers: {} });
+                'forward',
+            );
 
-            expect(outgoing.path).to.eql('/forward/?foo=bar//&target=http://foobar.com/?a=1%26b=2&other=2');
-        })
+            expect(outgoing.path).toEqual('some-path/am');
+        });
+
+        it('should properly detect https/wss protocol without the colon', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
+                {
+                    target: {
+                        protocol: 'https',
+                        host: 'whatever.com',
+                    },
+                },
+                { url: '/' },
+            );
+
+            expect(outgoing.port).toEqual(443);
+        });
+
+        it('should not prepend the target path to the outgoing path with prependPath = false', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
+                {
+                    target: { path: 'hellothere' },
+                    prependPath: false,
+                },
+                { url: 'hi' },
+            );
+
+            expect(outgoing.path).toEqual('/hi');
+        });
+
+        it('should properly join paths', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
+                {
+                    target: { path: '/forward' },
+                },
+                { url: '/static/path' },
+            );
+
+            expect(outgoing.path).toEqual('/forward/static/path');
+        });
+
+        it('should not modify the query string', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
+                {
+                    target: { path: '/forward' },
+                },
+                { url: '/?foo=bar//&target=http://foobar.com/?a=1%26b=2&other=2' },
+            );
+
+            expect(outgoing.path).toEqual(
+                '/forward/?foo=bar//&target=http://foobar.com/?a=1%26b=2&other=2',
+            );
+        });
 
         //
         // This is the proper failing test case for the common.join problem
         //
-        it.skip('should correctly format the toProxy URL', function () {
-            var outgoing = {};
-            var google = 'https://google.com'
-            setupOutgoing(outgoing, {
-                target: new URL('http://sometarget.com:80'),
-                toProxy: true,
-            }, { url: google });
+        it.skip('should correctly format the toProxy URL', () => {
+            const outgoing = {};
+            const google = 'https://google.com';
+            setupOutgoing(
+                outgoing,
+                {
+                    target: new URL('http://sometarget.com:80'),
+                    toProxy: true,
+                },
+                { url: google },
+            );
 
-            expect(outgoing.path).to.eql('/' + google);
+            expect(outgoing.path).toEqual('//' + google);
         });
 
-        it.skip('should not replace :\ to :\\ when no https word before', function () {
-            var outgoing = {};
-            var google = 'https://google.com:/join/join.js'
-            setupOutgoing(outgoing, {
-                target: new URL('http://sometarget.com:80'),
-                toProxy: true,
-            }, { url: google, headers: {} });
+        it.skip('should not replace : to :\\ when no https word before', () => {
+            const outgoing = {};
+            const google = 'https://google.com:/join/join.js';
+            setupOutgoing(
+                outgoing,
+                {
+                    target: new URL('http://sometarget.com:80'),
+                    toProxy: true,
+                },
+                { url: google },
+            );
 
-            expect(outgoing.path).to.eql('/' + google);
+            expect(outgoing.path).toEqual('/' + google);
         });
 
-        it.skip('should not replace :\ to :\\ when no https word before', function () {
-            var outgoing = {};
-            var google = 'http://google.com:/join/join.js'
-            setupOutgoing(outgoing, {
-                target: new URL('http://sometarget.com:80'),
-                toProxy: true,
-            }, { url: google, headers: {} });
+        it.skip('should not replace : to :\\ when no http word before', () => {
+            const outgoing = {};
+            const google = 'http://google.com:/join/join.js';
+            setupOutgoing(
+                outgoing,
+                {
+                    target: parse('http://sometarget.com:80'),
+                    toProxy: true,
+                },
+                { url: google },
+            );
 
-            expect(outgoing.path).to.eql('/' + google);
+            expect(outgoing.path).toEqual('/' + google);
         });
 
-        describe('when using ignorePath', function () {
-            it('should ignore the path of the `req.url` passed in but use the target path', function () {
-                var outgoing = {};
-                var myEndpoint = 'https://whatever.com/some/crazy/path/whoooo';
-                setupOutgoing(outgoing, {
-                    target: new URL(myEndpoint),
-                    ignorePath: true
-                }, { url: '/more/crazy/pathness', headers: {} });
-
-                expect(outgoing.path).to.eql('/some/crazy/path/whoooo');
-            });
-
-            it('should ignore the path of the `req.url` passed in but use the target path with two unencoded urls as query parameters', function () {
-                var outgoing = {};
-                var myEndpoint = 'https://whatever.com/some/crazy/path/whoooo?redirectTo=https://example.com&secondaryRedirect=https://test.com';
-                setupOutgoing(outgoing, {
-                    target: new URL(myEndpoint),
-                    ignorePath: true
-                }, { url: '/more/crazy/pathness', headers: {} });
-
-                expect(outgoing.path).to.eql(`/some/crazy/path/whoooo?redirectTo=${encodeURIComponent('https://example.com')}&secondaryRedirect=${encodeURIComponent('https://test.com')}`);
-            });
-
-            // Bugfix validation: 775, 959
-            it('should ignore the path of the `req.url` passed in but use the target path with two unencoded slashes in a query parameter', function () {
-                var outgoing = {};
-                var myEndpoint = 'https://whatever.com/some/crazy/path/whoooo?key=//myValue';
-                setupOutgoing(outgoing, {
-                    target: new URL(myEndpoint),
-                    ignorePath: true
-                }, { url: '/more/crazy/pathness', headers: {} });
-
-                expect(outgoing.path).to.eql(`/some/crazy/path/whoooo?key=${encodeURIComponent('//myValue')}`);
-            });
-
-            it('and prependPath: false, it should ignore path of target and incoming request', function () {
-                var outgoing = {};
-                var myEndpoint = 'https://whatever.com/some/crazy/path/whoooo';
-                setupOutgoing(outgoing, {
-                    target: new URL(myEndpoint),
-                    ignorePath: true,
-                    prependPath: false
-                }, { url: '/more/crazy/pathness', headers: {} });
-
-                expect(outgoing.path).to.eql('');
-            });
-        });
-
-        describe('when using changeOrigin', function () {
-            it('should correctly set the port to the host when it is a non-standard port using WHATWG URL', function () {
-                var outgoing = {};
-                var myEndpoint = 'https://myCouch.com:6984';
-                setupOutgoing(outgoing, {
-                    target: new URL(myEndpoint),
-                    changeOrigin: true
-                }, { url: '/', headers: {} });
-
-                expect(outgoing.headers.host).to.eql('mycouch.com:6984');
-            });
-
-            it('should correctly set the port to the host when it is a non-standard port when setting host and port manually (which ignores port)', function () {
-                var outgoing = {};
-                setupOutgoing(outgoing, {
-                    target: {
-                        protocol: 'https:',
-                        host: 'mycouch.com',
-                        port: 6984
+        describe('when using ignorePath', () => {
+            it('should ignore the path of the `req.url` passed in but use the target path', () => {
+                const outgoing = {};
+                const myEndpoint = 'https://whatever.com/some/crazy/path/whoooo';
+                setupOutgoing(
+                    outgoing,
+                    {
+                        target: parse(myEndpoint),
+                        ignorePath: true,
                     },
-                    changeOrigin: true
-                }, { url: '/' });
-                expect(outgoing.headers.host).to.eql('mycouch.com:6984');
-            })
+                    { url: '/more/crazy/pathness' },
+                );
+
+                expect(outgoing.path).toEqual('/some/crazy/path/whoooo');
+            });
+
+            it('and prependPath: false, it should ignore path of target and incoming request', () => {
+                const outgoing = {};
+                const myEndpoint = 'https://whatever.com/some/crazy/path/whoooo';
+                setupOutgoing(
+                    outgoing,
+                    {
+                        target: parse(myEndpoint),
+                        ignorePath: true,
+                        prependPath: false,
+                    },
+                    { url: '/more/crazy/pathness' },
+                );
+
+                expect(outgoing.path).toEqual('');
+            });
         });
 
-        it('should pass through https client parameters', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
+        describe('when using changeOrigin', () => {
+            it('should correctly set the port to the host when it is a non-standard port using new URL()', () => {
+                const outgoing = {};
+                const myEndpoint = 'https://myCouch.com:6984';
+                setupOutgoing(
+                    outgoing,
+                    {
+                        target: new URL(myEndpoint),
+                        changeOrigin: true,
+                    },
+                    { url: '/' },
+                );
+
+                expect(outgoing.headers.host).toEqual('mycouch.com:6984');
+            });
+
+            it('should correctly set the port to the host when it is a non-standard port when setting host and port manually (which ignores port)', () => {
+                const outgoing = {};
+                setupOutgoing(
+                    outgoing,
+                    {
+                        target: {
+                            protocol: 'https:',
+                            host: 'mycouch.com',
+                            port: 6984,
+                        },
+                        changeOrigin: true,
+                    },
+                    { url: '/' },
+                );
+                expect(outgoing.headers.host).toEqual('mycouch.com:6984');
+            });
+        });
+
+        it('should pass through https client parameters', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
                 {
                     agent: '?',
                     target: {
@@ -373,94 +391,52 @@ describe('src/proxy/common.ts', function () {
                         ca: 'my-ca',
                         ciphers: 'my-ciphers',
                         secureProtocol: 'my-secure-protocol',
-                        servername: 'my-servername',
-                    }
-                },
-                {
-                    method: 'i',
-                    url: 'am'
-                });
-
-            expect(outgoing.pfx).eql('my-pfx');
-            expect(outgoing.key).eql('my-key');
-            expect(outgoing.passphrase).eql('my-passphrase');
-            expect(outgoing.cert).eql('my-cert');
-            expect(outgoing.ca).eql('my-ca');
-            expect(outgoing.ciphers).eql('my-ciphers');
-            expect(outgoing.secureProtocol).eql('my-secure-protocol');
-            expect(outgoing.servername).eql('my-servername');
-        });
-
-        it('should handle overriding the `method` of the http request', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: parse('https://whooooo.com'),
-                method: 'POST',
-            }, { method: 'GET', url: '' });
-
-            expect(outgoing.method).eql('POST');
-        });
-
-        // url.parse('').path => null
-        it('should not pass null as last arg to #urlJoin', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing, {
-                target: {
-                    path: '',
-                    searchParams: new URLSearchParams()
-                }
-            }, { url: '', headers: {} });
-
-            expect(outgoing.path).to.be('/');
-        });
-
-    });
-
-    describe("when using followRedirects", function () {
-        it('should pass all options', function () {
-            var outgoing = {};
-            setupOutgoing(outgoing,
-                {
-                    agent: '?',
-                    target: {
-                        host: 'how',
-                        hostname: 'are',
-                        socketPath: 'you',
-                        protocol: 'https:'
                     },
-                    followRedirects: {
-                        maxRedirects: 5,
-                        maxBodyLength: 10000000,
-                        agents: { http: 'http', https: 'https' },
-                        beforeRedirect: function (options, headers) {
-                            options.agent = '??';
-                        },
-                        trackRedirects: true,
-                    }
                 },
                 {
                     method: 'i',
-                    url: 'am'
-                });
+                    url: 'am',
+                },
+            );
 
-            expect(outgoing.maxRedirects).to.eql(5);
-            expect(outgoing.maxBodyLength).to.eql(10000000);
-            expect(outgoing.agents.http).to.eql('http');
-            expect(outgoing.agents.https).to.eql('https');
-            var options = { agent: '?' };
-            var headers = {};
-            outgoing.beforeRedirect(options, headers);
-            expect(options.agent).to.eql('??');
-            expect(outgoing.trackRedirects).to.eql(true);
+            expect(outgoing.pfx).toEqual('my-pfx');
+            expect(outgoing.key).toEqual('my-key');
+            expect(outgoing.passphrase).toEqual('my-passphrase');
+            expect(outgoing.cert).toEqual('my-cert');
+            expect(outgoing.ca).toEqual('my-ca');
+            expect(outgoing.ciphers).toEqual('my-ciphers');
+            expect(outgoing.secureProtocol).toEqual('my-secure-protocol');
+        });
+
+        it('should handle overriding the `method` of the http request', () => {
+            const outgoing = {};
+            setupOutgoing(
+                outgoing,
+                {
+                    target: parse('https://whooooo.com'),
+                    method: 'POST',
+                },
+                { method: 'GET', url: '' },
+            );
+
+            expect(outgoing.method).toEqual('POST');
+        });
+
+        // new URL() => null
+        it('should not pass null as last arg to #urlJoin', () => {
+            const outgoing = {};
+            setupOutgoing(outgoing, { target: { path: '' } }, { url: '' });
+
+            expect(outgoing.path).toBe('/');
         });
     });
 
-    describe('#setupSocket', function () {
-        it('should setup a socket', function () {
-            var socketConfig = {
+    describe('#setupSocket', () => {
+        it('should setup a socket', () => {
+            const socketConfig = {
                 timeout: null,
                 nodelay: false,
-                keepalive: false
+                keepalive: false,
             },
                 stubSocket = {
                     setTimeout: function (num) {
@@ -471,13 +447,13 @@ describe('src/proxy/common.ts', function () {
                     },
                     setKeepAlive: function (bol) {
                         socketConfig.keepalive = bol;
-                    }
-                },
-                returnValue = setupSocket(stubSocket);
+                    },
+                };
+            setupSocket(stubSocket);
 
-            expect(socketConfig.timeout).to.eql(0);
-            expect(socketConfig.nodelay).to.eql(true);
-            expect(socketConfig.keepalive).to.eql(true);
+            expect(socketConfig.timeout).toEqual(0);
+            expect(socketConfig.nodelay).toEqual(true);
+            expect(socketConfig.keepalive).toEqual(true);
         });
     });
 });
