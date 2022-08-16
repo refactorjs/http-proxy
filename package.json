@@ -1,6 +1,6 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",
@@ -28,7 +28,6 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "eventemitter3": "^4.0.0",
         "follow-redirects": "^1.15.1",
         "requires-port": "^1.0.0"
     },
