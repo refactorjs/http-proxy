@@ -41,7 +41,7 @@
         "nyc": "^15.0.0",
         "semver": "^7.3.7",
         "socket.io": "^2.5.0",
-        "socket.io-client": "^2.5.0",
+        "socket.io-client": "^4.5.1",
         "sse": "0.0.8",
         "standard-version": "latest",
         "typescript": "^4.7.4",
