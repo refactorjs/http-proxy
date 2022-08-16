@@ -1,6 +1,6 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",
@@ -23,17 +23,19 @@
     ],
     "scripts": {
         "build": "unbuild",
-        "preapck": "unbuild",
-        "release": "standard-version && git push --follow-tags && pnpm publish",
+        "tscbuild": "tsc -p ./tsconfig.json",
+        "release": "standard-version && git push --follow-tags && npm publish",
         "test": "vitest run"
     },
     "dependencies": {
         "eventemitter3": "^4.0.0",
-        "follow-redirects": "^1.15.1"
+        "follow-redirects": "^1.15.1",
+        "requires-port": "^1.0.0"
     },
     "devDependencies": {
         "@types/follow-redirects": "^1.14.1",
         "@types/node": "^18.0.0",
+        "@types/requires-port": "^1.0.0",
         "async": "^3.0.0",
         "concat-stream": "^2.0.0",
         "nyc": "^15.0.0",

@@ -1,13 +1,15 @@
 import type { Server } from '../../types'
 import type { ProxyServer } from '../'
 import type { Buffer } from 'buffer';
-import * as common from '../common';
+import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
 import { pipeline } from 'stream';
-import http, { IncomingMessage, ServerResponse } from 'http';
-import https from 'http';
+import httpNative, { IncomingMessage, ServerResponse } from 'http';
+import httpsNative from 'https';
 import followRedirects from 'follow-redirects';
+import * as webOutgoing from './web.outgoing';
 
-const nativeAgents = { http: http, https: https };
+const passes = Object.keys(webOutgoing).map(pass => webOutgoing[pass as keyof typeof webOutgoing]);
+const nativeAgents = { http: httpNative, https: httpsNative };
 
 /**
  * Sets `content-length` to '0' if request is of DELETE type.
@@ -18,7 +20,7 @@ const nativeAgents = { http: http, https: https };
  *
  * @api private
  */
-export function deleteLength(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void {
+export function deleteLength(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void | boolean {
     if ((req.method === 'DELETE' || req.method === 'OPTIONS') && !req.headers['content-length']) {
         req.headers['content-length'] = '0';
         delete req.headers['transfer-encoding'];
@@ -34,7 +36,7 @@ export function deleteLength(req: IncomingMessage, res: ServerResponse, options:
  *
  * @api private
  */
-export function timeout(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void {
+export function timeout(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void | boolean {
     let timeoutValue = (options.timeout ? options.timeout : 0);
     req.socket.setTimeout(timeoutValue);
 }
@@ -48,20 +50,23 @@ export function timeout(req: IncomingMessage, res: ServerResponse, options: Serv
  *
  * @api private
  */
-export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void {
+export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void | boolean {
     if (!options.xfwd) return;
 
     // @ts-ignore - Spdy is not exported in the types file
-    let encrypted = req.isSpdy || common.hasEncryptedConnection(req);
+    let encrypted = req.isSpdy || hasEncryptedConnection(req);
     let values = {
-        for: req.connection.remoteAddress || req.socket.remoteAddress,
-        port: common.getPort(req),
+        for: req.connection?.remoteAddress || req.socket?.remoteAddress,
+        port: getPort(req),
         proto: encrypted ? 'https' : 'http'
     };
 
-    ['for', 'port', 'proto'].forEach(function (header) {
-        req.headers['x-forwarded-' + header] = (req.headers['x-forwarded-' + header] || '') + (req.headers['x-forwarded-' + header] ? ',' : '') + values[header];
-    });
+    for (let header of ['for', 'port', 'proto']) {
+        const headerName = 'x-forwarded-' + header;
+        if (!req.headers[headerName]) {
+            req.headers[headerName] = values[header];
+        }
+    }
 
     req.headers['x-forwarded-host'] = req.headers['x-forwarded-host'] || req.headers['host'] || '';
 }
@@ -80,7 +85,6 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
  * @api private
  */
 export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
-
     // And we begin!
     server.emit('start', req, res, options.target || options.forward);
 
@@ -90,9 +94,8 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     if (options.forward) {
         // If forward enable, so just pipe the request
-        const forwardReq = (common.isSSL.test(options.forward.protocol) ? https : http).request(
-            common.setupOutgoing(options.ssl || {}, options, req, 'forward')
-        );
+        // @ts-ignore
+        const forwardReq = (isSSL.test(options.forward.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req, 'forward'));
 
         // error handler (e.g. ECONNRESET, ECONNREFUSED)
         // Handle errors on incoming request as well as it makes sense to
@@ -108,9 +111,8 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     }
 
     // Request initalization
-    const proxyReq = (common.isSSL.test(options.target.protocol) ? https : http).request(
-        common.setupOutgoing(options.ssl || {}, options, req)
-    );
+    // @ts-ignore
+    const proxyReq = (isSSL.test(options.target.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req));
 
     // Enable developers to modify the proxyReq before headers are sent
     proxyReq.on('socket', function (socket) {
@@ -146,7 +148,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     function createErrorHandler(proxyReq, url) {
         return function proxyError(err) {
-            if (req.socket.destroyed && err.code === 'ECONNRESET') {
+            if ((req.aborted || req.socket.destroyed) && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, url);
                 proxyReq.destroy();
                 return;
@@ -170,7 +172,11 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
         const selfHandle = typeof (options.selfHandleResponse) === 'function' ? options.selfHandleResponse(proxyRes, req, res) : options.selfHandleResponse;
 
         if (!res.headersSent && (!selfHandle || options.forcePasses)) {
-            common.runWebOutgoingPasses(req, res, proxyRes, options);
+            for (let i = 0; i < passes.length; i++) {
+                if (typeof passes[i] === 'function' && passes[i](req, res, proxyRes, options)) {
+                    break;
+                }
+            }
         }
 
         if (!res.finished) {

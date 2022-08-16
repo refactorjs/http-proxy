@@ -44,7 +44,7 @@ describe('src/index.ts', () => {
                 https
                     .request(
                         {
-                            host: 'localhost',
+                            host: '127.0.0.1',
                             port: ports.proxy,
                             path: '/',
                             method: 'GET',
@@ -69,7 +69,7 @@ describe('src/index.ts', () => {
             });
         });
         describe('HTTP to HTTPS', () => {
-            it.skip('should proxy the request en send back the response', async () => {
+            it('should proxy the request en send back the response', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = https.createServer({
                         key: readFileSync(join(__dirname, 'fixtures', 'agent2-key.pem')),
@@ -121,7 +121,7 @@ describe('src/index.ts', () => {
             });
         });
         describe('HTTPS to HTTPS', () => {
-            it.skip('should proxy the request en send back the response', async () => {
+            it('should proxy the request en send back the response', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = https.createServer(
                     {
@@ -153,7 +153,7 @@ describe('src/index.ts', () => {
                     https
                         .request(
                             {
-                                host: 'localhost',
+                                host: '127.0.0.1',
                                 port: ports.proxy,
                                 path: '/',
                                 method: 'GET',
@@ -182,7 +182,7 @@ describe('src/index.ts', () => {
             });
         });
         describe('HTTPS not allow SSL self signed', () => {
-            it.skip('should fail with error', async () => {
+            it('should fail with error', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = https
                     .createServer({
@@ -262,7 +262,7 @@ describe('src/index.ts', () => {
                 https
                     .request(
                         {
-                            host: 'localhost',
+                            host: '127.0.0.1',
                             port: ports.proxy,
                             path: '/',
                             method: 'GET',

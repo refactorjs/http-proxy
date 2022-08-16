@@ -2,9 +2,9 @@ import type { Server } from '../../types'
 import type { ProxyServer } from '../'
 import type { Buffer } from 'buffer';
 import type { Socket } from 'net';
-import http, { IncomingMessage, ServerResponse, IncomingHttpHeaders } from 'http';
+import http, { ClientRequest, IncomingMessage, IncomingHttpHeaders } from 'http';
 import https from 'https';
-import * as common from '../common';
+import { getPort, hasEncryptedConnection, isSSL, setupOutgoing, setupSocket } from '../common';
 
 /**
  * WebSocket requests must have the `GET` method and
@@ -42,8 +42,8 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
 
     let values = {
         for: req.connection.remoteAddress || req.socket.remoteAddress,
-        port: common.getPort(req),
-        proto: common.hasEncryptedConnection(req) ? 'wss' : 'ws'
+        port: getPort(req),
+        proto: hasEncryptedConnection(req) ? 'wss' : 'ws'
     };
 
     ['for', 'port', 'proto'].forEach(function (header) {
@@ -63,7 +63,7 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
  *
  * @api private
  */
-export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void> {
+export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void | boolean | ClientRequest> {
     let createHttpHeader = function (line: string, headers: IncomingHttpHeaders): string {
         return Object.keys(headers).reduce(function (head, key) {
             let value = headers[key];
@@ -80,15 +80,14 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         }, [line]).join('\r\n') + '\r\n\r\n';
     }
 
-    common.setupSocket(socket);
+    setupSocket(socket);
 
     if (head && head.length) {
         socket.unshift(head);
     }
 
-    let proxyReq = (common.isSSL.test(options.target.protocol) ? https : http).request(
-        common.setupOutgoing(options.ssl || {}, options, req)
-    );
+    // @ts-ignore
+    let proxyReq = (isSSL.test(options.target.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req));
 
     // Error Handler
     proxyReq.on('error', onOutgoingError);
@@ -118,7 +117,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
             proxySocket.end();
         });
 
-        common.setupSocket(proxySocket);
+        setupSocket(proxySocket);
 
         if (proxyHead && proxyHead.length) {
             proxySocket.unshift(proxyHead);

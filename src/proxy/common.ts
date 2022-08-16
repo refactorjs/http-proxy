@@ -1,55 +1,23 @@
-
-// @ts-nocheck
-import type { Server } from '../types'
+import type { Server, OutgoingOptions } from '../types'
 import type { IncomingMessage } from 'http';
-import type { Socket }  from 'net';
-import * as webOutgoing from './passes/web.outgoing';
+import type { Socket } from 'net';
+import { URL } from 'url';
+import required from 'requires-port';
 
-const passes = Object.keys(webOutgoing).map(function (pass) {
-    return webOutgoing[pass as keyof typeof webOutgoing];
-});
+
+const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
 
 /**
  * Simple Regex for testing if protocol is https
  */
 export const isSSL = /^https|wss/;
 
-const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
-
-function required(port: number, protocol: string): boolean {
-    protocol = protocol.split(':')[0];
-    port = +port;
-
-    if (!port) return false;
-
-    switch (protocol) {
-        case 'http':
-        case 'ws':
-            return port !== 80;
-
-        case 'https':
-        case 'wss':
-            return port !== 443;
-
-        case 'ftp':
-            return port !== 21;
-
-        case 'gopher':
-            return port !== 70;
-
-        case 'file':
-            return false;
-    }
-
-    return port !== 0;
-}
-
 /**
  * Copies the right headers from `options` and `req` to
  * `outgoing` which is then used to fire the proxied
  * request.
  *
- * @param { Object } outgoing Base object to be filled with required properties
+ * @param { any } outgoing Base object to be filled with required properties
  * @param { Server.ServerOptions } options Config object passed to the proxy
  * @param { IncomingMessage } req Request Object
  * @param { String } forward String to select forward or target
@@ -58,9 +26,9 @@ function required(port: number, protocol: string): boolean {
  *
  * @api private
  */
-export function setupOutgoing(outgoing: any, options: Server.ServerOptions | Server.ServerOptions['target'], req: IncomingMessage, forward?: keyof typeof options | string): object {
+export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerOptions, req: IncomingMessage, forward?: keyof typeof options | string): any {
 
-    const target = options[forward  || 'target'];
+    const target = options[forward || 'target'];
 
     if (typeof target === 'object') {
         if (!target.searchParams) {
@@ -77,11 +45,11 @@ export function setupOutgoing(outgoing: any, options: Server.ServerOptions | Ser
 
     outgoing.port = target.port || (sslEnabled ? 443 : 80);
 
-    ['host', 'hostname', 'socketPath', 'pfx', 'key', 'passphrase', 'cert', 'ca', 'ciphers', 'secureProtocol', 'servername'].forEach(function (e) {
-        outgoing[e] = target[e];
-    });
+    for (const opt of ['host', 'hostname', 'socketPath', 'pfx', 'key', 'passphrase', 'cert', 'ca', 'ciphers', 'secureProtocol', 'servername']) {
+        outgoing[opt] = target[opt];
+    }
 
-    outgoing.method = options.method || req.method;
+    outgoing.method = options.target?.method || req.method;
     outgoing.headers = Object.assign({}, req.headers);
 
     if (options.headers) {
@@ -92,8 +60,8 @@ export function setupOutgoing(outgoing: any, options: Server.ServerOptions | Ser
         outgoing.auth = options.auth
     }
 
-    if (options.ca) {
-        outgoing.ca = options.ca;
+    if (options.target?.ca) {
+        outgoing.ca = options.target?.ca;
     }
 
     if (sslEnabled) {
@@ -134,6 +102,7 @@ export function setupOutgoing(outgoing: any, options: Server.ServerOptions | Ser
 
     // Base just needs to resemble a valid URL,
     // we only care about the parsing of the path & params
+    // @ts-ignore
     const reqUrl = new URL(req.url, 'http://example.com')
 
     for (const entry of target.searchParams.entries()) {
@@ -194,7 +163,7 @@ export function setupSocket(socket: Socket): Socket {
  *
  * @api private
  */
-export function getPort(req) {
+export function getPort(req: IncomingMessage): string {
     const res = req.headers.host ? req.headers.host.match(/:(\d+)/) : '';
 
     return res ? res[1] : hasEncryptedConnection(req) ? '443' : '80';
@@ -209,8 +178,9 @@ export function getPort(req) {
  *
  * @api private
  */
-export function hasEncryptedConnection(req) {
-    return Boolean(req.connection.encrypted || req.connection.pair);
+export function hasEncryptedConnection(req: IncomingMessage | Socket): boolean {
+    // @ts-ignore
+    return Boolean(req.connection?.encrypted || req.socket?.encrypted || req.connection?.pair || req.socket?.pair);
 };
 
 /**
@@ -221,7 +191,7 @@ export function hasEncryptedConnection(req) {
  *
  * @api private
  */
-export function rewriteCookieProperty(header, config, property) {
+export function rewriteCookieProperty(header: string | Array<any>, config: Object, property: string): string | Array<any> {
     if (Array.isArray(header)) {
         return header.map(function (headerElement) {
             return rewriteCookieProperty(headerElement, config, property);
@@ -256,7 +226,7 @@ export function rewriteCookieProperty(header, config, property) {
  *
  * @api private
  */
-export function removeCookieProperty(header, property) {
+export function removeCookieProperty(header: string | Array<any>, property: string) {
     if (Array.isArray(header)) {
         return header.map(function (headerElement) {
             return removeCookieProperty(headerElement, property);
@@ -269,13 +239,13 @@ export function removeCookieProperty(header, property) {
 /**
  * Merges `Set-Cookie` header
  *
- * @param { String|Array<String> } setCookie
- * @param { String|Array<String> } upstreamSetCookie
- * @returns { Array<String> }
+ * @param { String|string[] } setCookie
+ * @param { String|string[] } upstreamSetCookie
+ * @returns { string[] }
  *
  * @api private
  */
-export function mergeSetCookie(setCookie, upstreamSetCookie) {
+export function mergeSetCookie(setCookie: string | Array<any> | number | undefined, upstreamSetCookie: string | string[]): string[] {
     let existingCookieArray = setCookie || [],
         upstreamCookieArray = upstreamSetCookie || [];
 
@@ -287,25 +257,7 @@ export function mergeSetCookie(setCookie, upstreamSetCookie) {
         upstreamCookieArray = [upstreamCookieArray]
     }
 
-    return [].concat(existingCookieArray, upstreamCookieArray)
-};
-
-/**
- * Runs the "web-outgoing" functions.
- *
- * @param { IncomingMessage } req Request object
- * @param { ServerResponse } res Response object
- * @param { IncomingMessage } res Response object from the proxy request
- * @param { Server.ServerOptions } options options.cookieDomainRewrite: Config to rewrite cookie domain
- *
- * @api private
- */
-export function runWebOutgoingPasses(req, res, proxyRes, options) {
-    for (let i = 0; i < passes.length; i++) {
-        if (passes[i](req, res, proxyRes, options)) {
-            break;
-        }
-    }
+    return existingCookieArray.concat(upstreamCookieArray);
 };
 
 /**

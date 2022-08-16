@@ -1,4 +1,4 @@
-import * as webPasses from '../src/proxy/passes/web.incoming';
+import * as webIncoming from '../src/proxy/passes/web.incoming';
 import { createProxyServer } from '../src/proxy';
 import concat from 'concat-stream';
 import { parallel } from 'async';
@@ -15,7 +15,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
                 method: 'DELETE',
                 headers: {},
             };
-            webPasses.deleteLength(stubRequest, {}, {});
+            webIncoming.deleteLength(stubRequest, {}, {});
             expect(stubRequest.headers['content-length']).toEqual('0');
         });
 
@@ -24,7 +24,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
                 method: 'OPTIONS',
                 headers: {},
             };
-            webPasses.deleteLength(stubRequest, {}, {});
+            webIncoming.deleteLength(stubRequest, {}, {});
             expect(stubRequest.headers['content-length']).toEqual('0');
         });
 
@@ -35,7 +35,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
                     'transfer-encoding': 'chunked',
                 },
             };
-            webPasses.deleteLength(stubRequest, {}, {});
+            webIncoming.deleteLength(stubRequest, {}, {});
             expect(stubRequest.headers['content-length']).toEqual('0');
             expect(stubRequest.headers).not.toHaveProperty('transfer-encoding');
         });
@@ -52,7 +52,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
                 },
             };
 
-            webPasses.timeout(stubRequest, {}, { timeout: 5000 });
+            webIncoming.timeout(stubRequest, {}, { timeout: 5000 });
             expect(timeout).toEqual(5000);
         });
     });
@@ -69,7 +69,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
         };
 
         it('set the correct x-forwarded-* headers', () => {
-            webPasses.XHeaders(stubRequest, {}, { xfwd: true });
+            webIncoming.XHeaders(stubRequest, {}, { xfwd: true });
             expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.2');
             expect(stubRequest.headers['x-forwarded-port']).toBe('8080');
             expect(stubRequest.headers['x-forwarded-proto']).toBe('http');
@@ -476,10 +476,7 @@ describe('#createProxyServer.web() using own http server', () => {
             res.end();
             source.close();
             proxyServer.close();
-            const auth = new Buffer(
-                req.headers.authorization.split(' ')[1],
-                'base64',
-            );
+            const auth = Buffer.from(req.headers.authorization.split(' ')[1], 'base64');
             expect(req.method).toEqual('GET');
             expect(auth.toString()).toEqual('user:pass');
         });
