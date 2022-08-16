@@ -2,7 +2,7 @@ import { createProxyServer } from '../src/proxy';
 import { createServer, request } from 'http';
 import { connect } from 'net';
 import ws, { WebSocketServer } from 'ws';
-import io from 'socket.io';
+import { Server } from 'socket.io';
 import SSE from 'sse';
 import { connect as _connect } from 'socket.io-client';
 import { describe, expect, it } from 'vitest';
@@ -472,7 +472,7 @@ describe('src/index.ts', () => {
             })
             const proxyServer = proxy.listen(ports.proxy);
             const server = createServer();
-            const destiny = io.listen(server);
+            const destiny = new Server(server).listen(server);
 
             let serversClosed;
             function startSocketIo() {
@@ -515,7 +515,7 @@ describe('src/index.ts', () => {
             });
             const proxyServer = proxy.listen(ports.proxy);
             const server = createServer();
-            const destiny = io.listen(server);
+            const destiny = new Server(server).listen(server);
 
             function startSocketIo() {
                 const client = _connect('ws://127.0.0.1:' + ports.proxy, {
