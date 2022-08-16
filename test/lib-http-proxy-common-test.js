@@ -1,5 +1,4 @@
 import { setupOutgoing, setupSocket } from '../src/proxy/common';
-import { parse } from 'url';
 import { describe, expect, it } from 'vitest';
 
 describe('src/proxy/common.ts', () => {
@@ -297,7 +296,7 @@ describe('src/proxy/common.ts', () => {
             setupOutgoing(
                 outgoing,
                 {
-                    target: parse('http://sometarget.com:80'),
+                    target: new URL('http://sometarget.com:80'),
                     toProxy: true,
                 },
                 { url: google },
@@ -313,7 +312,7 @@ describe('src/proxy/common.ts', () => {
                 setupOutgoing(
                     outgoing,
                     {
-                        target: parse(myEndpoint),
+                        target: new URL(myEndpoint),
                         ignorePath: true,
                     },
                     { url: '/more/crazy/pathness' },
@@ -328,7 +327,7 @@ describe('src/proxy/common.ts', () => {
                 setupOutgoing(
                     outgoing,
                     {
-                        target: parse(myEndpoint),
+                        target: new URL(myEndpoint),
                         ignorePath: true,
                         prependPath: false,
                     },
@@ -413,7 +412,7 @@ describe('src/proxy/common.ts', () => {
             setupOutgoing(
                 outgoing,
                 {
-                    target: parse('https://whooooo.com'),
+                    target: new URL('https://whooooo.com'),
                     method: 'POST',
                 },
                 { method: 'GET', url: '' },

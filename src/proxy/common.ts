@@ -49,7 +49,8 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
         outgoing[opt] = target[opt];
     }
 
-    outgoing.method = options.target?.method || req.method;
+    // @ts-ignore - not inside ServerOptions
+    outgoing.method = options.method || req.method;
     outgoing.headers = Object.assign({}, req.headers);
 
     if (options.headers) {
@@ -60,9 +61,8 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
         outgoing.auth = options.auth
     }
 
-    if (options.target?.ca) {
-        outgoing.ca = options.target?.ca;
-    }
+    // @ts-ignore - not inside ServerOptions
+    if (options.ca) outgoing.ca = options.ca;
 
     if (sslEnabled) {
         outgoing.rejectUnauthorized = (typeof options.secure === "undefined") ? true : options.secure;
@@ -102,7 +102,6 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
 
     // Base just needs to resemble a valid URL,
     // we only care about the parsing of the path & params
-    // @ts-ignore
     const reqUrl = new URL(req.url, 'http://example.com')
 
     for (const entry of target.searchParams.entries()) {
