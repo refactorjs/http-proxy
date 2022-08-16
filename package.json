@@ -45,7 +45,7 @@
         "sse": "0.0.8",
         "standard-version": "latest",
         "typescript": "^4.7.4",
-        "unbuild": "^0.7.6",
+        "unbuild": "^0.8.8",
         "vitest": "^0.21.1",
         "ws": "^8.0.0"
     },
