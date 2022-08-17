@@ -1,6 +1,7 @@
 import { createProxyServer, createServer } from '../src/proxy';
 import http, { request } from 'http';
 import https from 'https';
+import http2 from 'http2';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { describe, expect, it } from 'vitest';
@@ -19,6 +20,55 @@ Object.defineProperty(gen, 'port', {
 });
 
 describe('src/index.ts', () => {
+    describe('HTTP/2 #createProxyServer', () => {
+        describe('HTTPS to HTTP', () => {
+            it('should proxy the request then send back the response', async () => {
+                const ports = { source: gen.port, proxy: gen.port };
+                const source = http.createServer(function (req, res) {
+                    expect(req.method).toEqual('GET');
+                    expect(req.headers.host.split(':')[1]).toEqual(String(ports.proxy));
+                    res.writeHead(200, { 'Content-Type': 'text/plain' });
+                    res.end('Hello from ' + ports.source);
+                });
+
+                source.listen(ports.source);
+
+                const proxy = createProxyServer({
+                    target: 'http://127.0.0.1:' + ports.source,
+                    ssl: {
+                        key: readFileSync(join(__dirname, 'fixtures', 'agent2-key.pem')),
+                        cert: readFileSync(join(__dirname, 'fixtures', 'agent2-cert.pem')),
+                        ciphers: 'AES128-GCM-SHA256',
+                    },
+                }).listen(ports.proxy);
+
+                const connect = http2.connect('http://127.0.0.1:' + ports.proxy, { rejectUnauthorized: false });
+
+                const res = connect.request({
+                    ':path': '/',
+                    ':method': 'GET'
+                })
+
+                res.end();
+
+                res.on('response', (res) => {
+                    expect(res.statusCode).toEqual(200);
+                })
+
+                res.on('data', (chunk) => {
+                    expect(chunk.toString()).toEqual('Hello from ' + ports.source);
+                })
+
+                res.on('end', function () {
+                    source.close();
+                    proxy.close();
+                });
+
+                await waitForClosed(source);
+            });
+        });
+    })
+
     describe('HTTPS #createProxyServer', () => {
         describe('HTTPS to HTTP', () => {
             it('should proxy the request then send back the response', async () => {
@@ -61,8 +111,7 @@ describe('src/index.ts', () => {
                             proxy.close();
                         });
                     },
-                )
-                    .end();
+                ).end();
 
                 await waitForClosed(source);
             });
