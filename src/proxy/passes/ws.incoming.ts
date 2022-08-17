@@ -63,7 +63,7 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
  *
  * @api private
  */
-export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void | boolean | ClientRequest> {
+export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void | boolean> {
     let createHttpHeader = function (line: string, headers: IncomingHttpHeaders): string {
         return Object.keys(headers).reduce(function (head, key) {
             let value = headers[key];
@@ -163,8 +163,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
 
         proxyStream.pipe(proxySocket);
 
-        server.emit('open', proxySocket);
-        server.emit('proxySocket', proxySocket);  //DEPRECATED.
+        server.emit('open', proxySocket, proxyReq, req);
     });
 
 
@@ -183,7 +182,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         }
     }
 
-    return proxyReq.end();
+    proxyReq.end();
 
     function onOutgoingError(err: Error) {
         if (callback) {

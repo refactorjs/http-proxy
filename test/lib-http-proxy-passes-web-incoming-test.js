@@ -2,7 +2,6 @@ import * as webIncoming from '../src/proxy/passes/web.incoming';
 import { createProxyServer } from '../src/proxy';
 import concat from 'concat-stream';
 import { parallel } from 'async';
-import { parse } from 'url';
 import { createServer, get, request } from 'http';
 import { describe, expect, it } from 'vitest';
 import { waitForClosed } from './util';
@@ -345,12 +344,10 @@ describe('#createProxyServer.web() using own http server', () => {
                 hostname: '127.0.0.1',
                 port: '8085',
                 method: 'GET',
-            },
-            function () { },
-        );
+            }, function () { });
 
         const closed = waitForClosed(proxyServer);
-    
+
         req.on('error', async function (err) {
             expect(err).toBeInstanceOf(Error);
             expect(err.code).toBe('ECONNRESET');
@@ -359,6 +356,53 @@ describe('#createProxyServer.web() using own http server', () => {
         });
 
         req.end();
+    });
+
+    it('should proxy the request and handle client disconnect error', () => {
+        const proxy = createProxyServer({
+            target: 'http://127.0.0.1:45002',
+        });
+
+        net.createServer().listen(45002);
+
+        const proxyServer = createServer(requestHandler);
+
+        const started = new Date().getTime();
+
+        function requestHandler(req, res) {
+            proxy.once('econnreset', function (err, errReq, errRes) {
+                proxyServer.close();
+                expect(err).toBeInstanceOf(Error);
+                expect(errReq).toEqual(req);
+                expect(errRes).toEqual(res);
+                expect(err.code).toBe('ECONNRESET');
+            });
+
+            proxy.web(req, res);
+        }
+
+        proxyServer.listen('8087');
+
+        var req = request({
+            hostname: '127.0.0.1',
+            port: '8087',
+            method: 'GET',
+        }, function () { });
+
+        const closed = waitForClosed(proxyServer);
+
+        req.on('error', async (err) => {
+            expect(err).toBeInstanceOf(Error);
+            expect(err.code).toBe('ECONNRESET');
+            expect(new Date().getTime() - started).toBeGreaterThan(99);
+            await closed;
+        });
+
+        req.end();
+
+        setTimeout(function () {
+            req.destroy();
+        }, 100);
     });
 
     it('should proxy the request and provide a proxyRes event with the request and response parameters', async () => {
@@ -389,7 +433,7 @@ describe('#createProxyServer.web() using own http server', () => {
         request('http://127.0.0.1:8086', function () { }).end();
         await waitForClosed(proxyServer, source);
     });
-    
+
     // Parallel seems to fail everything else in the test suite
     it('should proxy the request and provide and respond to manual user response when using modifyResponse', async () => {
         const proxy = createProxyServer({
@@ -552,7 +596,7 @@ describe('#followRedirects', () => {
         const proxyServer = createServer(requestHandler);
 
         const source = createServer(function (req, res) {
-            if (parse(req.url).pathname === '/redirect') {
+            if (new URL(req.url, 'http://example.com').pathname === '/redirect') {
                 res.writeHead(200, { 'Content-Type': 'text/plain' });
                 res.end('ok');
             }

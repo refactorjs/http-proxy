@@ -119,7 +119,8 @@ export declare namespace Server {
         req: TIncomingMessage,
         socket: net.Socket,
         options: ServerOptions,
-        head: any,
+        head: buffer.Buffer,
+        asyncContext: (cb: Promise<any>) => void,
     ) => void;
     type EconnresetCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (
         err: TError,

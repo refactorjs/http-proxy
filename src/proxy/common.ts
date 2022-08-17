@@ -1,7 +1,6 @@
 import type { Server, OutgoingOptions } from '../types'
 import type { IncomingMessage } from 'http';
 import type { Socket } from 'net';
-import { URL } from 'url';
 import required from 'requires-port';
 
 

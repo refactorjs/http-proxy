@@ -1,6 +1,6 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",
@@ -51,7 +51,6 @@
     "engines": {
         "node": ">=14.0.0"
     },
-    "packageManager": "yarn@3.2.0",
     "bugs": {
         "url": "https://github.com/refactorjs/http-proxy/issues"
     },

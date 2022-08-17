@@ -61,7 +61,7 @@ describe('src/index.ts', () => {
             });
 
             source.listen(ports.source);
-            request('http://127.0.0.1:' + ports.proxy, () => {}).end();
+            request('http://127.0.0.1:' + ports.proxy, () => { }).end();
         });
     });
 
@@ -472,7 +472,7 @@ describe('src/index.ts', () => {
             })
             const proxyServer = proxy.listen(ports.proxy);
             const server = createServer();
-            const destiny = new Server(server).listen(server);
+            const destiny = new Server(server)
 
             let serversClosed;
             function startSocketIo() {
@@ -515,7 +515,7 @@ describe('src/index.ts', () => {
             });
             const proxyServer = proxy.listen(ports.proxy);
             const server = createServer();
-            const destiny = new Server(server).listen(server);
+            const destiny = new Server(server)
 
             function startSocketIo() {
                 const client = _connect('ws://127.0.0.1:' + ports.proxy, {
@@ -643,28 +643,71 @@ describe('src/index.ts', () => {
             await waitForClosed(proxyServer);
         });
 
+        it('should detect a proxyReq event and modify headers with async handler', async () => {
+            const ports = { source: gen.port, proxy: gen.port }
+
+            const proxy = createProxyServer({
+                target: 'ws://127.0.0.1:' + ports.source,
+                ws: true
+            });
+
+            proxy.on('proxyReqWs', function (proxyReq, req, socket, options, head, asyncContext) {
+                asyncContext(async () => {
+                    proxyReq.setHeader('X-Special-Proxy-Header', 'async-foobar');
+                });
+            });
+
+            const proxyServer = proxy.listen(ports.proxy);
+
+            const destiny = new WebSocketServer({ port: ports.source }, function () {
+                const client = new ws('ws://127.0.0.1:' + ports.proxy);
+
+                client.on('open', function () {
+                    client.send('hello there');
+                });
+
+                client.on('message', function (msg) {
+                    expect(msg.toString()).toBe('Hello over websockets');
+                    client.close();
+                    proxyServer.close();
+                    destiny.close();
+                });
+            });
+
+            destiny.on('connection', function (socket, upgradeReq) {
+                expect(upgradeReq.headers['x-special-proxy-header']).toEqual('async-foobar');
+
+                socket.on('message', function (msg) {
+                    expect(msg.toString()).toBe('hello there');
+                    socket.send('Hello over websockets');
+                });
+            });
+
+            await waitForClosed(proxyServer);
+        });
+
         it('should forward frames with single frame payload (including on node 4.x)', async () => {
             const payload = Array(65529).join('0');
             const ports = { source: gen.port, proxy: gen.port };
             const proxy = createProxyServer({
                 target: 'ws://127.0.0.1:' + ports.source,
                 ws: true,
-            }),
-                proxyServer = proxy.listen(ports.proxy),
-                destiny = new WebSocketServer({ port: ports.source }, function () {
-                    const client = new ws('ws://127.0.0.1:' + ports.proxy);
+            })
+            const proxyServer = proxy.listen(ports.proxy)
+            const destiny = new WebSocketServer({ port: ports.source }, function () {
+                const client = new ws('ws://127.0.0.1:' + ports.proxy);
 
-                    client.on('open', function () {
-                        client.send(payload);
-                    });
-
-                    client.on('message', function (msg) {
-                        expect(msg.toString()).toBe('Hello over websockets');
-                        client.close();
-                        proxyServer.close();
-                        destiny.close();
-                    });
+                client.on('open', function () {
+                    client.send(payload);
                 });
+
+                client.on('message', function (msg) {
+                    expect(msg.toString()).toBe('Hello over websockets');
+                    client.close();
+                    proxyServer.close();
+                    destiny.close();
+                });
+            });
 
             destiny.on('connection', function (socket) {
                 socket.on('message', function (msg) {
