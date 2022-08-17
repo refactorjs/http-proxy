@@ -1,20 +1,15 @@
 import { createProxy } from '../../src/index';
 import { createServer } from 'http';
 import { getPort } from '../helpers/port';
-import { Agent } from 'http';
+import Agent from 'agentkeepalive';
 
-class customAgent extends Agent {
-    getName(options) {
-        return options.headers.remotePort + ':' + super(options);
-    }
-}
-
-const agent = new customAgent({
+const agent = new Agent({
     maxSockets: 100,
     keepAlive: true,
-    keepAliveMsecs: 1000,
     maxFreeSockets: 10,
-    timeout: 60000
+    keepAliveMsecs: 1000,
+    timeout: 60000,
+    keepAliveTimeout: 30000, // free socket keepalive for 30 seconds
 });
 
 const proxy = createProxy({
