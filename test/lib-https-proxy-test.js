@@ -21,7 +21,7 @@ Object.defineProperty(gen, 'port', {
 describe('src/index.ts', () => {
     describe('HTTPS #createProxyServer', () => {
         describe('HTTPS to HTTP', () => {
-            it('should proxy the request en send back the response', async () => {
+            it('should proxy the request then send back the response', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = http.createServer(function (req, res) {
                     expect(req.method).toEqual('GET');
@@ -41,41 +41,41 @@ describe('src/index.ts', () => {
                     },
                 }).listen(ports.proxy);
 
-                https
-                    .request(
-                        {
-                            host: '127.0.0.1',
-                            port: ports.proxy,
-                            path: '/',
-                            method: 'GET',
-                            rejectUnauthorized: false,
-                        },
-                        function (res) {
-                            expect(res.statusCode).toEqual(200);
+                https.request(
+                    {
+                        host: '127.0.0.1',
+                        port: ports.proxy,
+                        path: '/',
+                        method: 'GET',
+                        rejectUnauthorized: false,
+                    },
+                    function (res) {
+                        expect(res.statusCode).toEqual(200);
 
-                            res.on('data', function (data) {
-                                expect(data.toString()).toEqual('Hello from ' + ports.source);
-                            });
+                        res.on('data', function (data) {
+                            expect(data.toString()).toEqual('Hello from ' + ports.source);
+                        });
 
-                            res.on('end', function () {
-                                source.close();
-                                proxy.close();
-                            });
-                        },
-                    )
+                        res.on('end', function () {
+                            source.close();
+                            proxy.close();
+                        });
+                    },
+                )
                     .end();
 
                 await waitForClosed(source);
             });
         });
+
         describe('HTTP to HTTPS', () => {
-            it('should proxy the request en send back the response', async () => {
+            it('should proxy the request then send back the response', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = https.createServer({
-                        key: readFileSync(join(__dirname, 'fixtures', 'agent2-key.pem')),
-                        cert: readFileSync(join(__dirname, 'fixtures', 'agent2-cert.pem')),
-                        ciphers: 'AES128-GCM-SHA256',
-                    },
+                    key: readFileSync(join(__dirname, 'fixtures', 'agent2-key.pem')),
+                    cert: readFileSync(join(__dirname, 'fixtures', 'agent2-cert.pem')),
+                    ciphers: 'AES128-GCM-SHA256',
+                },
                     function (req, res) {
                         expect(req.method).toEqual('GET');
                         expect(req.headers.host.split(':')[1]).toEqual(String(ports.proxy));
@@ -120,8 +120,9 @@ describe('src/index.ts', () => {
                 await serversClosed;
             });
         });
+
         describe('HTTPS to HTTPS', () => {
-            it('should proxy the request en send back the response', async () => {
+            it('should proxy the request then send back the response', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = https.createServer(
                     {
@@ -181,6 +182,7 @@ describe('src/index.ts', () => {
                 await serversClosedPromise;
             });
         });
+
         describe('HTTPS not allow SSL self signed', () => {
             it('should fail with error', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
@@ -226,8 +228,9 @@ describe('src/index.ts', () => {
                 await serversClosed;
             });
         });
+
         describe('HTTPS to HTTP using own server', () => {
-            it('should proxy the request en send back the response', async () => {
+            it('should proxy the request then send back the response', async () => {
                 const ports = { source: gen.port, proxy: gen.port };
                 const source = http.createServer(function (req, res) {
                     expect(req.method).toEqual('GET');
