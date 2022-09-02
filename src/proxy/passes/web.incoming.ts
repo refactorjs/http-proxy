@@ -1,12 +1,14 @@
-import type { Server } from '../../types'
+import type { ProxyTargetDetailed, Server } from '../../types'
 import type { ProxyServer } from '../'
 import type { Buffer } from 'buffer';
+import type { Socket } from 'net';
 import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
 import { pipeline } from 'stream';
 import httpNative, { IncomingMessage, ServerResponse } from 'http';
 import httpsNative from 'https';
 import followRedirects from 'follow-redirects';
 import * as webOutgoing from './web.outgoing';
+import { URL } from 'url';
 
 const passes = Object.keys(webOutgoing).map(pass => webOutgoing[pass as keyof typeof webOutgoing]);
 const nativeAgents = { http: httpNative, https: httpsNative };
@@ -55,7 +57,7 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
 
     // @ts-ignore - Spdy is not exported in the types file
     let encrypted = req.isSpdy || hasEncryptedConnection(req);
-    let values = {
+    let values: Record<string, string | string[] | undefined> = {
         for: req.connection?.remoteAddress || req.socket?.remoteAddress,
         port: getPort(req),
         proto: encrypted ? 'https' : 'http'
@@ -115,7 +117,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     const proxyReq = (isSSL.test(options.target.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req));
 
     // Enable developers to modify the proxyReq before headers are sent
-    proxyReq.on('socket', function (socket) {
+    proxyReq.on('socket', function (socket: Socket) {
         if (server && !proxyReq.getHeader('expect')) {
             server.emit('proxyReq', proxyReq, req, res, options);
         }
@@ -146,8 +148,8 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     proxyReq.on('error', proxyError);
     req.on('error', proxyError);
 
-    function createErrorHandler(proxyReq, url) {
-        return function proxyError(err) {
+    function createErrorHandler(proxyReq: { destroy: () => void; }, url: string | Partial<URL & ProxyTargetDetailed> | undefined) {
+        return function proxyError(err: any) {
             if ((req.aborted || req.socket.destroyed) && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, url);
                 proxyReq.destroy();

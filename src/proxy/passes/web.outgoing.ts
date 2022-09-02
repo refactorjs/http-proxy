@@ -92,14 +92,14 @@ export function writeHeaders(req: IncomingMessage, res: ServerResponse, proxyRes
 
     let rewriteCookieDomainConfig = options.cookieDomainRewrite
     let rewriteCookiePathConfig = options.cookiePathRewrite
-    let rawHeaderKeyMap: Object;
+    let rawHeaderKeyMap: Record<string, unknown> = {};
 
     const setHeader = function (key: string, header: any) {
         if (rewriteCookieDomainConfig && key.toLowerCase() === 'set-cookie') {
-            header = rewriteCookieProperty(header, rewriteCookieDomainConfig, 'domain');
+            header = rewriteCookieProperty(header, rewriteCookieDomainConfig as Record<string, unknown>, 'domain');
         }
         if (rewriteCookiePathConfig && key.toLowerCase() === 'set-cookie') {
-            header = rewriteCookieProperty(header, rewriteCookiePathConfig, 'path');
+            header = rewriteCookieProperty(header, rewriteCookiePathConfig as Record<string, unknown>, 'path');
         }
         if (mergeCookiesConfig && key.toLowerCase() === 'set-cookie') {
             header = mergeSetCookie(res.getHeader('set-cookie'), header)
@@ -126,7 +126,6 @@ export function writeHeaders(req: IncomingMessage, res: ServerResponse, proxyRes
     // message.rawHeaders is added in: v0.11.6
     // https://nodejs.org/api/http.html#http_message_rawheaders
     if (preserveHeaderKeyCase && proxyRes.rawHeaders != undefined) {
-        rawHeaderKeyMap = {};
         for (let i = 0; i < proxyRes.rawHeaders.length; i += 2) {
             let key = proxyRes.rawHeaders[i];
             rawHeaderKeyMap[key.toLowerCase()] = key;
@@ -136,7 +135,7 @@ export function writeHeaders(req: IncomingMessage, res: ServerResponse, proxyRes
     Object.keys(proxyRes.headers).forEach(function (key) {
         const header = proxyRes.headers[key];
         if (preserveHeaderKeyCase && rawHeaderKeyMap) {
-            key = rawHeaderKeyMap[key] || key;
+            (key as unknown) = rawHeaderKeyMap[key] || key;
         }
         setHeader(key, header);
     });
@@ -153,7 +152,7 @@ export function writeHeaders(req: IncomingMessage, res: ServerResponse, proxyRes
 export function attachOutgoingHeaders(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage, options: Server.ServerOptions): void | boolean {
     if (options.outgoingHeaders != null) {
         Object.keys(options.outgoingHeaders).forEach(function (header) {
-            res.setHeader(header, options.outgoingHeaders[header]);
+            res.setHeader(header, (options.outgoingHeaders as any)[header]);
         });
     }
 }
@@ -170,9 +169,9 @@ export function attachOutgoingHeaders(req: IncomingMessage, res: ServerResponse,
 export function writeStatusCode(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage): void | boolean {
     // From Node.js docs: response.writeHead(statusCode[, statusMessage][, headers])
     if (proxyRes.statusMessage) {
-        res.statusCode = proxyRes.statusCode;
+        res.statusCode = proxyRes.statusCode as number;
         res.statusMessage = proxyRes.statusMessage;
     } else {
-        res.statusCode = proxyRes.statusCode;
+        res.statusCode = proxyRes.statusCode as number;
     }
 }

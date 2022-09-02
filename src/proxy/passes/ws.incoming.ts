@@ -2,7 +2,7 @@ import type { Server } from '../../types'
 import type { ProxyServer } from '../'
 import type { Buffer } from 'buffer';
 import type { Socket } from 'net';
-import http, { ClientRequest, IncomingMessage, IncomingHttpHeaders } from 'http';
+import http, { IncomingMessage, IncomingHttpHeaders } from 'http';
 import https from 'https';
 import { getPort, hasEncryptedConnection, isSSL, setupOutgoing, setupSocket } from '../common';
 
@@ -40,7 +40,7 @@ export function checkMethodAndHeader(req: IncomingMessage, socket: Socket): void
 export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.ServerOptions): void {
     if (!options.xfwd) return;
 
-    let values = {
+    let values: Record<string, unknown> = {
         for: req.connection.remoteAddress || req.socket.remoteAddress,
         port: getPort(req),
         proto: hasEncryptedConnection(req) ? 'wss' : 'ws'
@@ -144,8 +144,8 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
                 proxyRes,
             );
 
-            wsServerTransformStream.on('error', onOutgoingError);
-            proxyStream = proxyStream.pipe(wsServerTransformStream);
+            wsServerTransformStream!.on('error', onOutgoingError);
+            proxyStream = proxyStream.pipe(wsServerTransformStream!);
         }
 
         proxyStream = proxyStream.pipe(socket);
@@ -157,8 +157,8 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
                 proxyRes,
             );
 
-            wsClientTransformStream.on('error', onOutgoingError);
-            proxyStream = proxyStream.pipe(wsClientTransformStream);
+            wsClientTransformStream!.on('error', onOutgoingError);
+            proxyStream = proxyStream.pipe(wsClientTransformStream!);
         }
 
         proxyStream.pipe(proxySocket);
@@ -170,8 +170,8 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
     // Enable developers to modify the proxyReq before headers are sent
     if (server) {
         // Provides a way for the event handler to communicate back to the emitter when it finishes its async handling
-        let asyncHandler
-        const asyncContext = (callback) => {
+        let asyncHandler: any
+        const asyncContext = (callback: any) => {
             asyncHandler = callback
         }
 

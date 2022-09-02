@@ -19,7 +19,7 @@ export const isSSL = /^https|wss/;
  * @param { any } outgoing Base object to be filled with required properties
  * @param { Server.ServerOptions } options Config object passed to the proxy
  * @param { IncomingMessage } req Request Object
- * @param { String } forward String to select forward or target
+ * @param { string } forward string to select forward or target
  * 
  * @return { Object } Outgoing Object with all required properties set
  *
@@ -27,7 +27,7 @@ export const isSSL = /^https|wss/;
  */
 export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerOptions, req: IncomingMessage, forward?: keyof typeof options | string): any {
 
-    const target = options[forward || 'target'];
+    const target: any = options[(forward || 'target') as keyof typeof options];
 
     if (typeof target === 'object') {
         if (!target.searchParams) {
@@ -45,7 +45,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
     outgoing.port = target.port || (sslEnabled ? 443 : 80);
 
     for (const opt of ['host', 'hostname', 'socketPath', 'pfx', 'key', 'passphrase', 'cert', 'ca', 'ciphers', 'secureProtocol', 'servername']) {
-        outgoing[opt] = target[opt];
+        (outgoing as any)[opt] = target[opt];
     }
 
     // @ts-ignore - not inside ServerOptions
@@ -101,7 +101,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
 
     // Base just needs to resemble a valid URL,
     // we only care about the parsing of the path & params
-    const reqUrl = new URL(req.url, 'http://example.com')
+    const reqUrl = new URL(req.url as string, 'http://example.com')
 
     for (const entry of target.searchParams.entries()) {
         reqUrl.searchParams.set(entry[0], entry[1])
@@ -121,7 +121,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
     outgoing.path = [targetPath, outgoingPath].filter(Boolean).join('/').replace(/\/+/g, '/') + params
 
     if (options.changeOrigin) {
-        outgoing.headers.host = required(outgoing.port, target.protocol) && !hasPort(outgoing.host?.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;
+        outgoing.headers.host = required(outgoing.port, target.protocol) && !hasPort(outgoing.host.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;
     }
 
     return outgoing;
@@ -157,7 +157,7 @@ export function setupSocket(socket: Socket): Socket {
  *
  * @param { IncomingMessage } req Incoming HTTP request.
  *
- * @return { String } The port number.
+ * @return { string } The port number.
  *
  * @api private
  */
@@ -184,12 +184,12 @@ export function hasEncryptedConnection(req: IncomingMessage | Socket): boolean {
 /**
  * Rewrites or removes the domain of a cookie header
  *
- * @param { String|Array } header
- * @param { Object } config mapping of domain to rewritten domain. '*' key to match any domain, null value to remove the domain.
+ * @param { string|Array } header
+ * @param { Record<string, unknown> } config mapping of domain to rewritten domain. '*' key to match any domain, null value to remove the domain.
  *
  * @api private
  */
-export function rewriteCookieProperty(header: string | Array<any>, config: Object, property: string): string | Array<any> {
+export function rewriteCookieProperty(header: string | Array<any>, config: Record<string, unknown>, property: string): string | Array<any> {
     if (Array.isArray(header)) {
         return header.map(function (headerElement) {
             return rewriteCookieProperty(headerElement, config, property);
@@ -219,12 +219,12 @@ export function rewriteCookieProperty(header: string | Array<any>, config: Objec
 /**
  * Removes the specified attribute from a cookie header.
  *
- * @param { String|Array } header
- * @param { String } property Name of attribute to remove
+ * @param { string|Array } header
+ * @param { string } property Name of attribute to remove
  *
  * @api private
  */
-export function removeCookieProperty(header: string | Array<any>, property: string) {
+export function removeCookieProperty(header: string | string[], property: string): object | string {
     if (Array.isArray(header)) {
         return header.map(function (headerElement) {
             return removeCookieProperty(headerElement, property);
@@ -237,8 +237,8 @@ export function removeCookieProperty(header: string | Array<any>, property: stri
 /**
  * Merges `Set-Cookie` header
  *
- * @param { String|string[] } setCookie
- * @param { String|string[] } upstreamSetCookie
+ * @param { string|string[] } setCookie
+ * @param { string|string[] } upstreamSetCookie
  * @returns { string[] }
  *
  * @api private
@@ -261,7 +261,7 @@ export function mergeSetCookie(setCookie: string | Array<any> | number | undefin
 /**
  * Check the host and see if it potentially has a port in it (keep it simple)
  * 
- * @param { String } host
+ * @param { string } host
  * @returns { Boolean } Whether we have one or not
  *
  * @api private
