@@ -58,7 +58,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
 
     describe('#XHeaders', () => {
         const stubRequest = {
-            connection: {
+            socket: {
                 remoteAddress: '192.168.1.2',
                 remotePort: '8080',
             },

@@ -1,4 +1,4 @@
-import type { Server } from '../../types'
+import type { Server, OutgoingOptions } from '../../types'
 import type { ProxyServer } from '../'
 import type { Buffer } from 'buffer';
 import type { Socket } from 'net';
@@ -41,7 +41,7 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
     if (!options.xfwd) return;
 
     let values: Record<string, unknown> = {
-        for: req.connection.remoteAddress || req.socket.remoteAddress,
+        for: req.socket.remoteAddress,
         port: getPort(req),
         proto: hasEncryptedConnection(req) ? 'wss' : 'ws'
     };
@@ -64,7 +64,7 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
  * @api private
  */
 export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void | boolean> {
-    let createHttpHeader = function (line: string, headers: IncomingHttpHeaders): string {
+    const createHttpHeader = function (line: string, headers: IncomingHttpHeaders): string {
         return Object.keys(headers).reduce(function (head, key) {
             let value = headers[key];
 
@@ -86,17 +86,14 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         socket.unshift(head);
     }
 
-    // @ts-ignore
-    let proxyReq = (isSSL.test(options.target.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req));
+    const proxyReq = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http).request(setupOutgoing((options.ssl || {}) as OutgoingOptions, options as OutgoingOptions, req) as any);
 
     // Error Handler
     proxyReq.on('error', onOutgoingError);
     proxyReq.on('response', function (res: IncomingMessage) {
         // if upgrade event isn't going to happen, close the socket
-
-        // @ts-ignore
         // IncomingMessage type also passes through the response event
-        if (!res.upgrade && !socket.destroyed) {
+        if (!res.headers.upgrade && !socket.destroyed) {
             socket.write(createHttpHeader('HTTP/' + res.httpVersion + ' ' + res.statusCode + ' ' + res.statusMessage, res.headers));
             res.pipe(socket).on('error', onOutgoingError)
         }
@@ -138,11 +135,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         let proxyStream = proxySocket;
 
         if (options.createWsServerTransformStream) {
-            const wsServerTransformStream = options.createWsServerTransformStream(
-                req,
-                proxyReq,
-                proxyRes,
-            );
+            const wsServerTransformStream = options.createWsServerTransformStream(req, proxyReq, proxyRes);
 
             wsServerTransformStream!.on('error', onOutgoingError);
             proxyStream = proxyStream.pipe(wsServerTransformStream!);
@@ -151,11 +144,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         proxyStream = proxyStream.pipe(socket);
 
         if (options.createWsClientTransformStream) {
-            const wsClientTransformStream = options.createWsClientTransformStream(
-                req,
-                proxyReq,
-                proxyRes,
-            );
+            const wsClientTransformStream = options.createWsClientTransformStream(req, proxyReq, proxyRes);
 
             wsClientTransformStream!.on('error', onOutgoingError);
             proxyStream = proxyStream.pipe(wsClientTransformStream!);

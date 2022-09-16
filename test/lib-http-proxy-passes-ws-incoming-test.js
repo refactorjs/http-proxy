@@ -82,9 +82,9 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
             expect(returnValue).toBe(undefined);
         });
 
-        it('set the correct x-forwarded-* headers from req.connection', () => {
+        it('set the correct x-forwarded-* headers from req.socket', () => {
             const stubRequest = {
-                connection: {
+                socket: {
                     remoteAddress: '192.168.1.2',
                     remotePort: '8080',
                 },
@@ -102,10 +102,7 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
             const stubRequest = {
                 socket: {
                     remoteAddress: '192.168.1.3',
-                    remotePort: '8181',
-                },
-                connection: {
-                    pair: true,
+                    remotePort: '8181'
                 },
                 headers: {
                     host: '192.168.1.3:8181',
@@ -114,7 +111,6 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
             XHeaders(stubRequest, {}, { xfwd: true });
             expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.3');
             expect(stubRequest.headers['x-forwarded-port']).toBe('8181');
-            expect(stubRequest.headers['x-forwarded-proto']).toBe('wss');
         });
     });
 });

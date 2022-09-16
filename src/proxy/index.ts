@@ -1,4 +1,4 @@
-import type { Server, Passthrough } from '../types'
+import type { Server, WebPassthrough, WsPassthrough } from '../types'
 import type { Socket } from 'net';
 import { Buffer } from 'buffer'
 import { EventEmitter } from 'events';
@@ -16,7 +16,7 @@ export class ProxyServer extends EventEmitter {
      * @param res - Client response.
      * @param options - Additional options.
      */
-    web: Passthrough;
+    web: WebPassthrough;
     /**
      * Used for proxying regular HTTP(S) requests
      * @param req - Client request.
@@ -24,9 +24,9 @@ export class ProxyServer extends EventEmitter {
      * @param head - Client head.
      * @param options - Additionnal options.
      */
-    ws: Passthrough;
-    webPasses: Passthrough[];
-    wsPasses: Passthrough[];
+    ws: WsPassthrough;
+    webPasses: WebPassthrough[];
+    wsPasses: WsPassthrough[];
 
     /**
      * Creates the proxy server with specified options.
@@ -37,12 +37,12 @@ export class ProxyServer extends EventEmitter {
 
         options.prependPath = options.prependPath === false ? false : true;
 
-        this.web = this.#createProxyPassthrough('web')(options);
-        this.ws = this.#createProxyPassthrough('ws')(options);
+        this.web = this.#createWebProxyPassthrough()(options);
+        this.ws = this.#createWsProxyPassthrough()(options);
         this.options = options;
 
-        this.webPasses = Object.keys(webIncoming).map(pass => webIncoming[pass as keyof typeof webIncoming] as Passthrough);
-        this.wsPasses = Object.keys(wsIncoming).map(pass => wsIncoming[pass as keyof typeof wsIncoming] as Passthrough)
+        this.webPasses = Object.keys(webIncoming).map(pass => webIncoming[pass as keyof typeof webIncoming] as WebPassthrough);
+        this.wsPasses = Object.keys(wsIncoming).map(pass => wsIncoming[pass as keyof typeof wsIncoming] as WsPassthrough)
 
         super.on('error', this.onError);
     }
@@ -88,7 +88,7 @@ export class ProxyServer extends EventEmitter {
         }
     }
 
-    before(type: 'web' | 'ws', passName: string, callback: Passthrough) {
+    before(type: 'web' | 'ws', passName: string, callback: WebPassthrough & WsPassthrough) {
         const passes = (type === 'ws') ? this.wsPasses : this.webPasses;
         let i = -1;
 
@@ -101,7 +101,7 @@ export class ProxyServer extends EventEmitter {
         passes.splice(i, 0, callback);
     }
 
-    after(type: 'web' | 'ws', passName: string, callback: Passthrough) {
+    after(type: 'web' | 'ws', passName: string, callback: WebPassthrough & WsPassthrough) {
         const passes = (type === 'ws') ? this.wsPasses : this.webPasses;
         let i = -1;
 
@@ -114,23 +114,60 @@ export class ProxyServer extends EventEmitter {
         passes.splice(i++, 0, callback);
     }
 
-    #createProxyPassthrough(type: 'web' | 'ws') {
+    #createWebProxyPassthrough() {
         return (options: Server.ServerOptions) => {
-            return (req: IncomingMessage, res: ServerResponse | Socket, ...args: any[]) => {
-                const passes = (type === 'ws') ? this.wsPasses : this.webPasses;
+            return (req: IncomingMessage, res: ServerResponse, ...args: any[]) => {
+                const passes = this.webPasses;
 
                 let index = args.length - 1;
-                let head: Buffer;
-                let callback: Passthrough[];
-                let proxyOptions: Server.ServerOptions = options || this.options;
+                let callback: any = undefined;
+                let proxyOptions = options || this.options;
 
                 /* optional args parse begin */
                 if (typeof args[index] === 'function') {
                     callback = args[index];
-                    index--;
                 }
 
-                if (!(args[index] instanceof Buffer) && args[index] !== res) {
+                //Overwrite with request options
+                proxyOptions = Object.assign({}, options);
+                Object.assign(proxyOptions, args[index]);
+
+                /* optional args parse end */
+                for (const opt of ['target', 'forward']) {
+                    if (typeof proxyOptions[opt as keyof Server.ServerOptions] === 'string') {
+                        (proxyOptions as any)[opt as keyof Server.ServerOptions] = new URL(proxyOptions[opt as keyof Server.ServerOptions] as string);
+                    }
+                }
+
+                if (!proxyOptions.target && !proxyOptions.forward) {
+                    return super.emit('error', new Error('Must provide a proper URL as target'));
+                }
+
+                for (let i = 0; i < passes.length; i++) {
+                    if (passes[i](req, res, proxyOptions, this, callback)) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    #createWsProxyPassthrough() {
+        return (options: Server.ServerOptions) => {
+            return (req: IncomingMessage, socket: Socket, ...args: any[]) => {
+                const passes = this.wsPasses;
+
+                let index = args.length - 1;
+                let head: Buffer | undefined = undefined;
+                let callback: any = undefined;
+                let proxyOptions = options || this.options;
+
+                /* optional args parse begin */
+                if (typeof args[index] === 'function') {
+                    callback = args[index];
+                }
+
+                if (!(args[index] instanceof Buffer)) {
                     //Overwrite with request options
                     proxyOptions = Object.assign({}, options);
                     Object.assign(proxyOptions, args[index]);
@@ -143,10 +180,8 @@ export class ProxyServer extends EventEmitter {
 
                 /* optional args parse end */
                 for (const opt of ['target', 'forward']) {
-                    // @ts-ignore
                     if (typeof proxyOptions[opt as keyof Server.ServerOptions] === 'string') {
-                        // @ts-ignore
-                        proxyOptions[opt as keyof Server.ServerOptions] = new URL(proxyOptions[opt]);
+                        (proxyOptions as any)[opt as keyof Server.ServerOptions] = new URL(proxyOptions[opt as keyof Server.ServerOptions] as string);
                     }
                 }
 
@@ -155,8 +190,7 @@ export class ProxyServer extends EventEmitter {
                 }
 
                 for (let i = 0; i < passes.length; i++) {
-                    //@ts-ignore
-                    if (typeof passes[i] === 'function' && passes[i](req, res, proxyOptions, head, this, callback)) {
+                    if (passes[i](req, socket, proxyOptions, head, this, callback)) {
                         break;
                     }
                 }

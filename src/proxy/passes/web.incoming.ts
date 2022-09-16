@@ -1,6 +1,5 @@
 import type { ProxyTargetDetailed, Server } from '../../types'
 import type { ProxyServer } from '../'
-import type { Buffer } from 'buffer';
 import type { Socket } from 'net';
 import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
 import { pipeline } from 'stream';
@@ -55,10 +54,9 @@ export function timeout(req: IncomingMessage, res: ServerResponse, options: Serv
 export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void | boolean {
     if (!options.xfwd) return;
 
-    // @ts-ignore - Spdy is not exported in the types file
-    let encrypted = req.isSpdy || hasEncryptedConnection(req);
+    let encrypted = hasEncryptedConnection(req);
     let values: Record<string, string | string[] | undefined> = {
-        for: req.connection?.remoteAddress || req.socket?.remoteAddress,
+        for: req.socket?.remoteAddress,
         port: getPort(req),
         proto: encrypted ? 'https' : 'http'
     };
@@ -81,12 +79,11 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
  * @param { IncomingMessage } req Request object
  * @param { ServerResponse } res Response object
  * @param { Server.ServerOptions } options Config object passed to the proxy
- * @param { Buffer } head Buffer containing the first bytes of the incoming request
  * @param { ProxyServer } server Server object
  *
  * @api private
  */
-export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
+export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, server: ProxyServer, callback: (err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
     // And we begin!
     server.emit('start', req, res, options.target || options.forward);
 
@@ -96,8 +93,9 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     if (options.forward) {
         // If forward enable, so just pipe the request
-        // @ts-ignore
-        const forwardReq = (isSSL.test(options.forward.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req, 'forward'));
+        const forwardReq: httpNative.ClientRequest = (isSSL.test(options.forward!['protocol' as keyof Server.ServerOptions['target']]) ? https : http)
+        // @ts-ignore - Incompatibilities with follow-redirects types
+        .request(setupOutgoing(options.ssl || {}, options, req, 'forward'));
 
         // error handler (e.g. ECONNRESET, ECONNREFUSED)
         // Handle errors on incoming request as well as it makes sense to
@@ -113,8 +111,10 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     }
 
     // Request initalization
-    // @ts-ignore
-    const proxyReq = (isSSL.test(options.target.protocol) ? https : http).request(setupOutgoing(options.ssl || {}, options, req));
+
+    const proxyReq: httpNative.ClientRequest = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http)
+    // @ts-ignore - Incompatibilities with follow-redirects types
+    .request(setupOutgoing(options.ssl || {}, options, req));
 
     // Enable developers to modify the proxyReq before headers are sent
     proxyReq.on('socket', function (socket: Socket) {
@@ -148,9 +148,9 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     proxyReq.on('error', proxyError);
     req.on('error', proxyError);
 
-    function createErrorHandler(proxyReq: { destroy: () => void; }, url: string | Partial<URL & ProxyTargetDetailed> | undefined) {
+    function createErrorHandler(proxyReq: httpNative.ClientRequest, url: string | Partial<URL & ProxyTargetDetailed> | undefined) {
         return function proxyError(err: any) {
-            if ((req.aborted || req.socket.destroyed) && err.code === 'ECONNRESET') {
+            if (req.socket.destroyed && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, url);
                 proxyReq.destroy();
                 return;
@@ -181,7 +181,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
             }
         }
 
-        if (!res.finished) {
+        if (!res.writableEnded) {
             // Allow us to listen when the proxy has completed
             proxyRes.on('end', function () {
                 if (server) {

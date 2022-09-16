@@ -3,8 +3,8 @@ import * as net from "net";
 import * as http from 'http';
 import * as https from 'https';
 import * as buffer from 'buffer';
-import * as followRedirects from 'follow-redirects';
-import { ProxyServer } from './proxy'
+import type { FollowOptions } from 'follow-redirects';
+import type { ProxyServer } from './proxy'
 
 export interface ProxyTargetDetailed {
     host: string;
@@ -22,29 +22,39 @@ export interface ProxyTargetDetailed {
     ciphers?: string;
     secureProtocol?: string;
     servername?: string;
-    searchParams?: string | url.URLSearchParams;
+    searchParams?: url.URLSearchParams;
     pathname?: string;
     path?: string;
 }
 
-export interface OutgoingOptions extends ProxyTargetDetailed, followRedirects.FollowOptions<Server.followOptions> {
+export interface OutgoingOptions extends ProxyTargetDetailed, Server.ServerOptions {
     localAddress?: string;
     headers?: Server.ServerOptions['headers'];
     agent?: Server.ServerOptions['agent'];
     auth?: Server.ServerOptions['auth'];
     rejectUnauthorized?: boolean;
+    maxRedirects?: FollowOptions<any>['maxRedirects']
+    maxBodyLength?: FollowOptions<any>['maxBodyLength']
+    agents?: FollowOptions<any>['agents']
+    beforeRedirect?: FollowOptions<any>['beforeRedirect']
+    trackRedirects?: FollowOptions<any>['trackRedirects']
 }
 
-export interface Passthrough {
+export interface WebPassthrough {
     (req: http.IncomingMessage, res: http.ServerResponse): boolean | void;
-    (req: http.IncomingMessage, res: http.ServerResponse | net.Socket, head?: buffer.Buffer): boolean | void;
-    (req: http.IncomingMessage, res: http.ServerResponse, options: Server.ServerOptions, head?: buffer.Buffer, server?: ProxyServer, callback?: ( err?: Error, req?: http.IncomingMessage, res?: http.ServerResponse, url?: Server.ServerOptions['target'] ) => void ): boolean | void;
+    (req: http.IncomingMessage, res: http.ServerResponse, options: Server.ServerOptions): boolean | void;
+    (req: http.IncomingMessage, res: http.ServerResponse, options: Server.ServerOptions, server?: ProxyServer, callback?: ( err?: any, req?: http.IncomingMessage, res?: http.ServerResponse, url?: Server.ServerOptions['target'] ) => void ): boolean | void;
+}
+
+export interface WsPassthrough {
+    (req: http.IncomingMessage, socket: net.Socket): boolean | void;
+    (req: http.IncomingMessage, socket: net.Socket, head?: buffer.Buffer): boolean | void;
+    (req: http.IncomingMessage, socket: net.Socket, options: Server.ServerOptions, head?: buffer.Buffer, server?: ProxyServer, callback?: ( err: any, req: http.IncomingMessage, socket: net.Socket ) => void ): boolean | void;
 }
 
 export declare namespace Server {
     type ProxyTarget = ProxyTargetUrl | url.URL & ProxyTargetDetailed;
     type ProxyTargetUrl = Partial<url.URL & ProxyTargetDetailed>;
-    type followOptions = {}
 
     export interface ServerOptions {
         /** URL string to be parsed with the url module. */
@@ -100,7 +110,7 @@ export declare namespace Server {
         /** Timeout (in milliseconds) for incoming requests */
         timeout?: number;
         /** Specify whether you want to follow redirects. Default: false */
-        followRedirects?: followRedirects.FollowOptions<followOptions>;
+        followRedirects?: FollowOptions<any> | false;
         /** if set to true the web passes will be run even if `selfHandleResponse` is also set to true. */
         forcePasses?: boolean;
         /** If set to true, none of the webOutgoing passes are called and it's your responsibility to appropriately return the response by listening and acting on the proxyRes event */

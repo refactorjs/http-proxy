@@ -1,8 +1,8 @@
-import type { Server, OutgoingOptions } from '../types'
+import type { Server, OutgoingOptions, ProxyTargetDetailed } from '../types'
 import type { IncomingMessage } from 'http';
 import type { Socket } from 'net';
 import required from 'requires-port';
-
+import { TLSSocket } from 'tls';
 
 const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
 
@@ -16,18 +16,18 @@ export const isSSL = /^https|wss/;
  * `outgoing` which is then used to fire the proxied
  * request.
  *
- * @param { any } outgoing Base object to be filled with required properties
- * @param { Server.ServerOptions } options Config object passed to the proxy
+ * @param { OutgoingOptions } outgoing Base object to be filled with required properties
+ * @param { OutgoingOptions } options Config object passed to the proxy
  * @param { IncomingMessage } req Request Object
  * @param { string } forward string to select forward or target
  * 
- * @return { Object } Outgoing Object with all required properties set
+ * @return { OutgoingOptions } Outgoing Object with all required properties set
  *
  * @api private
  */
-export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerOptions, req: IncomingMessage, forward?: keyof typeof options | string): any {
+export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOptions, req: IncomingMessage, forward?: string): OutgoingOptions {
 
-    const target: any = options[(forward || 'target') as keyof typeof options];
+    const target = options[(forward || 'target') as keyof typeof options] as typeof options;
 
     if (typeof target === 'object') {
         if (!target.searchParams) {
@@ -40,15 +40,14 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
         }
     }
 
-    const sslEnabled = isSSL.test(target.protocol)
+    const sslEnabled = isSSL.test(target.protocol!)
 
     outgoing.port = target.port || (sslEnabled ? 443 : 80);
 
     for (const opt of ['host', 'hostname', 'socketPath', 'pfx', 'key', 'passphrase', 'cert', 'ca', 'ciphers', 'secureProtocol', 'servername']) {
-        (outgoing as any)[opt] = target[opt];
+        (outgoing as any)[opt] = target[opt as keyof typeof target];
     }
 
-    // @ts-ignore - not inside ServerOptions
     outgoing.method = options.method || req.method;
     outgoing.headers = Object.assign({}, req.headers);
 
@@ -60,7 +59,6 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
         outgoing.auth = options.auth
     }
 
-    // @ts-ignore - not inside ServerOptions
     if (options.ca) outgoing.ca = options.ca;
 
     if (sslEnabled) {
@@ -103,7 +101,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
     // we only care about the parsing of the path & params
     const reqUrl = new URL(req.url as string, 'http://example.com')
 
-    for (const entry of target.searchParams.entries()) {
+    for (const entry of target.searchParams!.entries()) {
         reqUrl.searchParams.set(entry[0], entry[1])
     }
 
@@ -121,7 +119,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: Server.ServerO
     outgoing.path = [targetPath, outgoingPath].filter(Boolean).join('/').replace(/\/+/g, '/') + params
 
     if (options.changeOrigin) {
-        outgoing.headers.host = required(outgoing.port, target.protocol) && !hasPort(outgoing.host.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;
+        outgoing.headers.host = required(outgoing.port, target.protocol!) && !hasPort(outgoing.host.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;
     }
 
     return outgoing;
@@ -176,9 +174,8 @@ export function getPort(req: IncomingMessage): string {
  *
  * @api private
  */
-export function hasEncryptedConnection(req: IncomingMessage | Socket): boolean {
-    // @ts-ignore
-    return Boolean(req.connection?.encrypted || req.socket?.encrypted || req.connection?.pair || req.socket?.pair);
+export function hasEncryptedConnection(req: IncomingMessage): boolean {
+    return req.socket instanceof TLSSocket && req.socket.encrypted;
 };
 
 /**
