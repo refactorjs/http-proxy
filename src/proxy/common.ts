@@ -1,4 +1,4 @@
-import type { Server, OutgoingOptions, ProxyTargetDetailed } from '../types'
+import type { OutgoingOptions } from '../types'
 import type { IncomingMessage } from 'http';
 import type { Socket } from 'net';
 import required from 'requires-port';

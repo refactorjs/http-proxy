@@ -63,7 +63,7 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
  *
  * @api private
  */
-export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: (err: Error, req: IncomingMessage, socket: Socket) => void): Promise<void | boolean> {
+export async function stream(req: IncomingMessage, socket: Socket, options: Server.ServerOptions, head: Buffer, server: ProxyServer, callback: Server.ErrorCallback): Promise<void | boolean> {
     const createHttpHeader = function (line: string, headers: IncomingHttpHeaders): string {
         return Object.keys(headers).reduce(function (head, key) {
             let value = headers[key];

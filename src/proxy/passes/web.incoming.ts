@@ -83,7 +83,7 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
  *
  * @api private
  */
-export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, server: ProxyServer, callback: (err: Error, req: IncomingMessage, res: ServerResponse, url: Server.ServerOptions['target']) => void): void | ServerResponse {
+export function stream(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions, server: ProxyServer, callback: Server.ErrorCallback): void | ServerResponse {
     // And we begin!
     server.emit('start', req, res, options.target || options.forward);
 
@@ -148,18 +148,18 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     proxyReq.on('error', proxyError);
     req.on('error', proxyError);
 
-    function createErrorHandler(proxyReq: httpNative.ClientRequest, url: string | Partial<URL & ProxyTargetDetailed> | undefined) {
+    function createErrorHandler(proxyReq: httpNative.ClientRequest, target: Server.ServerOptions['target']) {
         return function proxyError(err: any) {
             if (req.socket.destroyed && err.code === 'ECONNRESET') {
-                server.emit('econnreset', err, req, res, url);
+                server.emit('econnreset', err, req, res, target);
                 proxyReq.destroy();
                 return;
             }
 
             if (callback) {
-                callback(err, req, res, url);
+                callback(err, req, res, target);
             } else {
-                server.emit('error', err, req, res, url);
+                server.emit('error', err, req, res, target);
             }
         }
     }

@@ -43,13 +43,13 @@ export interface OutgoingOptions extends ProxyTargetDetailed, Server.ServerOptio
 export interface WebPassthrough {
     (req: http.IncomingMessage, res: http.ServerResponse): boolean | void;
     (req: http.IncomingMessage, res: http.ServerResponse, options: Server.ServerOptions): boolean | void;
-    (req: http.IncomingMessage, res: http.ServerResponse, options: Server.ServerOptions, server?: ProxyServer, callback?: ( err?: any, req?: http.IncomingMessage, res?: http.ServerResponse, url?: Server.ServerOptions['target'] ) => void ): boolean | void;
+    (req: http.IncomingMessage, res: http.ServerResponse, options: Server.ServerOptions, server?: ProxyServer, callback?: Server.ErrorCallback): boolean | void;
 }
 
 export interface WsPassthrough {
     (req: http.IncomingMessage, socket: net.Socket): boolean | void;
     (req: http.IncomingMessage, socket: net.Socket, head?: buffer.Buffer): boolean | void;
-    (req: http.IncomingMessage, socket: net.Socket, options: Server.ServerOptions, head?: buffer.Buffer, server?: ProxyServer, callback?: ( err: any, req: http.IncomingMessage, socket: net.Socket ) => void ): boolean | void;
+    (req: http.IncomingMessage, socket: net.Socket, options: Server.ServerOptions, head?: buffer.Buffer, server?: ProxyServer, callback?: Server.ErrorCallback): boolean | void;
 }
 
 export declare namespace Server {
@@ -105,8 +105,6 @@ export declare namespace Server {
         outgoingHeaders?: Record<string, string | number | readonly string[]> | http.IncomingHttpHeaders;
         /** Timeout (in milliseconds) when proxy receives no response from target. Default: 120000 (2 minutes) */
         proxyTimeout?: number;
-        /** */
-        router?: Record<string, unknown>;
         /** Timeout (in milliseconds) for incoming requests */
         timeout?: number;
         /** Specify whether you want to follow redirects. Default: false */
@@ -116,41 +114,17 @@ export declare namespace Server {
         /** If set to true, none of the webOutgoing passes are called and it's your responsibility to appropriately return the response by listening and acting on the proxyRes event */
         selfHandleResponse?: boolean | Function;
         /** if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the client websocket will be piped through this stream before being piped to the server, allowing you to influence the request data. */
-        createWsClientTransformStream?: ( req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage ) => net.Socket;
+        createWsClientTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket;
         /** if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the server websocket will be piped through this stream before being piped to the client, allowing you to influence the response data. */
-        createWsServerTransformStream?: ( req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage ) => net.Socket;
+        createWsServerTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket;
         /** Buffer */
         buffer?: buffer.Buffer;
     }
 
-    type StartCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl ) => void;
-    type ProxyReqCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (proxyReq: TClientRequest, req: TIncomingMessage, res: TServerResponse, options: ServerOptions) => void;
-    type ProxyResCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (proxyRes: TIncomingMessage, req: TIncomingMessage, res: TServerResponse) => void;
-    type ProxyReqWsCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage> = (
-        proxyReq: TClientRequest,
-        req: TIncomingMessage,
-        socket: net.Socket,
-        options: ServerOptions,
-        head: buffer.Buffer,
-        asyncContext: (cb: Promise<any>) => void,
-    ) => void;
-    type EconnresetCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (
-        err: TError,
-        req: TIncomingMessage,
-        res: TServerResponse,
-        target: ProxyTargetUrl,
-    ) => void;
-    type EndCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (
-        req: TIncomingMessage,
-        res: TServerResponse,
-        proxyRes: TIncomingMessage
-    ) => void;
-    type OpenCallback = (proxySocket: net.Socket) => void;
-    type CloseCallback<TIncomingMessage = http.IncomingMessage> = (proxyRes: TIncomingMessage, proxySocket: net.Socket, proxyHead: any) => void;
     type ErrorCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (
         err: TError,
         req: TIncomingMessage,
         res: TServerResponse | net.Socket,
-        target?: ProxyTargetUrl,
+        target?: Server.ServerOptions['target']
     ) => void;
 }
