@@ -24,7 +24,7 @@
 
 */
 
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import { createProxyServer } from '../../src/index';
 import SSE from 'sse';
 import { getPort } from '../helpers/port';

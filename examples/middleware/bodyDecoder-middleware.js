@@ -24,10 +24,10 @@
 
 */
 
-import { createServer } from 'http'
+import { createServer } from 'node:http'
 import connect from 'connect'
 import { post } from 'request'
-import { stringify } from 'querystring'
+import { stringify } from 'node:querystring'
 import { json as _json, urlencoded } from 'body-parser'
 import { createProxyServer } from '../../src/index'
 import { getPort } from '../helpers/port'

@@ -24,8 +24,8 @@
 
 */
 
-import { debug } from 'util';
-import { createServer } from 'http';
+import { debug } from 'node:util';
+import { createServer } from 'node:http';
 import { createProxyServer } from '../../src/index';
 import { listen } from 'socket.io';
 import { connect } from 'socket.io-client';

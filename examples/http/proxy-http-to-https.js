@@ -24,7 +24,7 @@
 
 */
 
-import { globalAgent } from 'https';
+import { globalAgent } from 'node:https';
 import { createProxyServer } from '../../src/index';
 import { getPort } from '../helpers/port';
 

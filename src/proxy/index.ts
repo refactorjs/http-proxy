@@ -1,9 +1,9 @@
 import type { Server, WebPassthrough, WsPassthrough } from '../types'
-import type { Socket } from 'net';
-import { Buffer } from 'buffer'
-import { EventEmitter } from 'events';
-import http, { IncomingMessage, ServerResponse } from 'http';
-import https from 'https';
+import type { Socket } from 'node:net';
+import { Buffer } from 'node:buffer'
+import { EventEmitter } from 'node:events';
+import http, { IncomingMessage, ServerResponse } from 'node:http';
+import https from 'node:https';
 import * as webIncoming from './passes/web.incoming';
 import * as wsIncoming from './passes/ws.incoming';
 
@@ -104,7 +104,7 @@ export class ProxyServer extends EventEmitter {
      */
     web(req: IncomingMessage, res: ServerResponse, ...args: any[]) {
         let index = args.length - 1;
-        let callback: any = undefined;
+        let callback: Server.ErrorCallback | undefined = undefined;
         let proxyOptions = this.options;
 
         /* optional args parse begin */
@@ -143,7 +143,7 @@ export class ProxyServer extends EventEmitter {
     ws(req: IncomingMessage, socket: Socket, ...args: any[]) {
         let index = args.length - 1;
         let head: Buffer | undefined = undefined;
-        let callback: any = undefined;
+        let callback: Server.ErrorCallback | undefined = undefined;
         let proxyOptions = this.options;
 
         /* optional args parse begin */

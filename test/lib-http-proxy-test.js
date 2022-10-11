@@ -1,6 +1,6 @@
 import { createProxyServer } from '../src/proxy';
-import { createServer, request } from 'http';
-import { connect } from 'net';
+import { createServer, request } from 'node:http';
+import { connect } from 'node:net';
 import ws, { WebSocketServer } from 'ws';
 import { Server } from 'socket.io';
 import SSE from 'sse';

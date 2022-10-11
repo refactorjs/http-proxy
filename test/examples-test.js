@@ -4,9 +4,9 @@
   Copyright (c) 2013 - 2016 Charlie Robbins, Jarrett Cruger & the Contributors.
 
 */
-import { join } from 'path';
-import { readdir } from 'fs/promises';
-import { spawn } from 'child_process';
+import { join } from 'node:path';
+import { readdir } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 const rootDir = join(__dirname, '..')

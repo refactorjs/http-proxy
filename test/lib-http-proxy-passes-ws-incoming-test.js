@@ -102,7 +102,8 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
             const stubRequest = {
                 socket: {
                     remoteAddress: '192.168.1.3',
-                    remotePort: '8181'
+                    remotePort: '8181',
+                    encrypted: true
                 },
                 headers: {
                     host: '192.168.1.3:8181',
@@ -111,6 +112,10 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
             XHeaders(stubRequest, {}, { xfwd: true });
             expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.3');
             expect(stubRequest.headers['x-forwarded-port']).toBe('8181');
+            // This won't work because Xheaders expects the socket to be an
+            // instance of TLSSocket which is only available with an ssl cert
+            // for encryption
+            //expect(stubRequest.headers['x-forwarded-proto']).toBe('wss');
         });
     });
 });

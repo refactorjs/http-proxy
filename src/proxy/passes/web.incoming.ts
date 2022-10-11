@@ -1,13 +1,12 @@
-import type { ProxyTargetDetailed, Server } from '../../types'
+import type { Server } from '../../types'
 import type { ProxyServer } from '../'
-import type { Socket } from 'net';
+import type { Socket } from 'node:net';
 import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
-import { pipeline } from 'stream';
-import httpNative, { IncomingMessage, ServerResponse } from 'http';
-import httpsNative from 'https';
+import { pipeline } from 'node:stream';
+import httpNative, { IncomingMessage, ServerResponse } from 'node:http';
+import httpsNative from 'node:https';
 import followRedirects from 'follow-redirects';
 import * as webOutgoing from './web.outgoing';
-import { URL } from 'url';
 
 const passes = Object.keys(webOutgoing).map(pass => webOutgoing[pass as keyof typeof webOutgoing]);
 const nativeAgents = { http: httpNative, https: httpsNative };

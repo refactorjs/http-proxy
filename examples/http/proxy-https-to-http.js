@@ -24,9 +24,9 @@
 
 */
 
-import { createServer } from 'http';
-import { join } from 'path';
-import { readFileSync } from 'fs';
+import { createServer } from 'node:http';
+import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { createServer as _createServer } from '../../src/index';
 import { getPort } from '../helpers/port';
 

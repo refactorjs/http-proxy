@@ -24,7 +24,7 @@
 
 */
 
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import { createServer as _createServer, compress } from 'connect';
 import { createProxyServer } from '../../src/index';
 import { getPort } from '../helpers/port';

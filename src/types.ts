@@ -1,8 +1,8 @@
-import * as url from "url";
-import * as net from "net";
-import * as http from 'http';
-import * as https from 'https';
-import * as buffer from 'buffer';
+import * as url from 'node:url';
+import * as net from 'node:net';
+import * as http from 'node:http';
+import * as https from 'node:https';
+import * as buffer from 'node:buffer';
 import type { FollowOptions } from 'follow-redirects';
 import type { ProxyServer } from './proxy'
 

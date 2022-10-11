@@ -23,7 +23,7 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
-import http from 'http';
+import http from 'node:http';
 import { createProxyServer } from '../../src/index';
 import { getPort } from '../helpers/port'
 

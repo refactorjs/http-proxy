@@ -21,8 +21,8 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import { createServer } from 'http';
-import { connect } from 'net';
+import { createServer } from 'node:http';
+import { connect } from 'node:net';
 import { createServer as _createServer } from '../../src/index';
 import { parse } from 'url';
 import { getPort } from '../helpers/port';

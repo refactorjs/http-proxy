@@ -1,5 +1,5 @@
 import type { Server } from '../../types'
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { rewriteCookieProperty, mergeSetCookie, removeCookieProperty } from '../common'
 
 const redirectRegex = /^201|30(1|2|7|8)$/;

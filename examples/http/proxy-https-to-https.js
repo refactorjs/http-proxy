@@ -24,9 +24,9 @@
 
 */
 
-import { createServer } from 'https'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { createServer } from 'node:https'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { createServer as _createServer } from '../../src/index'
 const fixturesDir = join(__dirname, '..', '..', 'test', 'fixtures')
 const httpsOpts = {

@@ -1,9 +1,9 @@
 import type { Server, OutgoingOptions } from '../../types'
 import type { ProxyServer } from '../'
-import type { Buffer } from 'buffer';
-import type { Socket } from 'net';
-import http, { IncomingMessage, IncomingHttpHeaders } from 'http';
-import https from 'https';
+import type { Buffer } from 'node:buffer';
+import type { Socket } from 'node:net';
+import http, { IncomingMessage, IncomingHttpHeaders } from 'node:http';
+import https from 'node:https';
 import { getPort, hasEncryptedConnection, isSSL, setupOutgoing, setupSocket } from '../common';
 
 /**

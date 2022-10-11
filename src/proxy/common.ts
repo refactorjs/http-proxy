@@ -1,8 +1,8 @@
 import type { OutgoingOptions } from '../types'
-import type { IncomingMessage } from 'http';
-import type { Socket } from 'net';
+import type { IncomingMessage } from 'node:http';
+import type { Socket } from 'node:net';
+import { TLSSocket } from 'node:tls';
 import required from 'requires-port';
-import { TLSSocket } from 'tls';
 
 const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
 

@@ -1,5 +1,5 @@
 import { createProxy } from '../../src/index';
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import { getPort } from '../helpers/port';
 import Agent from 'agentkeepalive';
 

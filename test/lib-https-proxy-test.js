@@ -1,9 +1,9 @@
 import { createProxyServer, createServer } from '../src/proxy';
-import http, { request } from 'http';
-import https from 'https';
-import http2 from 'http2';
-import { join } from 'path';
-import { readFileSync } from 'fs';
+import http, { request } from 'node:http';
+import https from 'node:https';
+import http2 from 'node:http2';
+import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { waitForClosed } from './util';
 

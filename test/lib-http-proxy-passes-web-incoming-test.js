@@ -2,10 +2,10 @@ import * as webIncoming from '../src/proxy/passes/web.incoming';
 import { createProxyServer } from '../src/proxy';
 import concat from 'concat-stream';
 import { parallel } from 'async';
-import { createServer, get, request } from 'http';
+import { createServer, get, request } from 'node:http';
 import { describe, expect, it } from 'vitest';
 import { waitForClosed } from './util';
-import net from 'net';
+import net from 'node:net';
 
 describe('src/proxy/passes/web.incoming.ts', () => {
     describe('#deleteLength', () => {
