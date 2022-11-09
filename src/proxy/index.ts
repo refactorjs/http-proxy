@@ -180,6 +180,38 @@ export class ProxyServer extends EventEmitter {
     }
 }
 
+export declare interface ProxyServer {
+    on(event: string, listener: () => void): this;
+    on(event: "error", listener: Server.ErrorCallback): this;
+    on(event: "start", listener: Server.StartCallback): this;
+    on(event: "proxyReq", listener: Server.ProxyReqCallback): this;
+    on(event: "proxyRes", listener: Server.ProxyResCallback): this;
+    on(event: "proxyReqWs", listener: Server.ProxyReqWsCallback): this;
+    on(event: "econnreset", listener: Server.EconnresetCallback): this;
+    on(event: "end", listener: Server.EndCallback): this;
+    on(event: "open", listener: Server.OpenCallback): this;
+    on(event: "close", listener: Server.CloseCallback): this;
+
+    once(event: string, listener: () => void): this;
+    once(event: "error", listener: Server.ErrorCallback): this;
+    once(event: "start", listener: Server.StartCallback): this;
+    once(event: "proxyReq", listener: Server.ProxyReqCallback): this;
+    once(event: "proxyRes", listener: Server.ProxyResCallback): this;
+    once(event: "proxyReqWs", listener: Server.ProxyReqWsCallback): this;
+    once(event: "econnreset", listener: Server.EconnresetCallback): this;
+    once(event: "end", listener: Server.EndCallback): this;
+    once(event: "open", listener: Server.OpenCallback): this;
+    once(event: "close", listener: Server.CloseCallback): this;
+    addListener(event: string, listener: () => void): this;
+    removeListener(event: string, listener: () => void): this;
+    removeAllListeners(event?: string): this;
+    getMaxListeners(): number;
+    setMaxListeners(n: number): this;
+    listeners(event: string): Array<() => void>;
+    emit(event: string, ...args: any[]): boolean;
+    listenerCount(type: string): number;
+}
+
 export const createProxyServer = (options?: Server.ServerOptions): ProxyServer => {
     return new ProxyServer(options);
 }

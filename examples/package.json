@@ -4,12 +4,12 @@
     "version": "0.0.0",
     "type": "module",
     "dependencies": {
-        "agentkeepalive": "^4.0.0",
+        "agentkeepalive": "^4.2.1",
         "connect": "^3.7.0",
         "connect-restreamer": "^1.0.3",
         "request": "^2.88.2",
-        "socket.io": "^2.5.0",
-        "socket.io-client": "^2.5.0",
+        "socket.io": "^4.5.3",
+        "socket.io-client": "^4.5.3",
         "sse": "0.0.8"
     }
 }

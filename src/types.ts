@@ -56,7 +56,7 @@ export declare namespace Server {
     type ProxyTarget = ProxyTargetUrl | url.URL & ProxyTargetDetailed;
     type ProxyTargetUrl = Partial<url.URL & ProxyTargetDetailed>;
 
-    export interface ServerOptions {
+    interface ServerOptions {
         /** URL string to be parsed with the url module. */
         target?: string | ProxyTarget;
         /** URL string to be parsed with the url module. */
@@ -121,10 +121,13 @@ export declare namespace Server {
         buffer?: buffer.Buffer;
     }
 
-    type ErrorCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (
-        err: TError,
-        req: TIncomingMessage,
-        res: TServerResponse | net.Socket,
-        target?: Server.ServerOptions['target']
-    ) => void;
+    type StartCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl) => void;
+    type ProxyReqCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (proxyReq: TClientRequest, req: TIncomingMessage, res: TServerResponse, options: ServerOptions) => void;
+    type ProxyResCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (proxyRes: TIncomingMessage, req: TIncomingMessage, res: TServerResponse) => void;
+    type ProxyReqWsCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage> = (proxyReq: TClientRequest, req: TIncomingMessage, options: ServerOptions, socket: net.Socket, head: any) => void;
+    type EconnresetCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (err: TError, req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl) => void;
+    type EndCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (req: TIncomingMessage, res: TServerResponse, proxyRes: TIncomingMessage) => void;
+    type OpenCallback = (proxySocket: net.Socket) => void;
+    type CloseCallback<TIncomingMessage = http.IncomingMessage> = (proxyRes: TIncomingMessage, proxySocket: net.Socket, proxyHead: any) => void;
+    type ErrorCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (err: TError, req: TIncomingMessage, res: TServerResponse | net.Socket, target?: Server.ServerOptions['target']) => void;
 }
