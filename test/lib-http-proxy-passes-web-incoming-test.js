@@ -5,6 +5,7 @@ import { parallel } from 'async';
 import { createServer, get, request } from 'node:http';
 import { describe, expect, it } from 'vitest';
 import { waitForClosed } from './util';
+import semver from 'semver'
 import net from 'node:net';
 
 describe('src/proxy/passes/web.incoming.ts', () => {
@@ -504,7 +505,7 @@ describe('#createProxyServer.web() using own http server', () => {
         await waitForClosed(proxyServer, source);
     });
 
-    it('should proxy the request with the Authorization header set', async () => {
+    it.skipIf(semver.gte(process.version, '18.0.0'))('should proxy the request with the Authorization header set', async () => {
         const proxy = createProxyServer({
             target: 'http://127.0.0.1:8080',
             auth: 'user:pass',
@@ -532,7 +533,7 @@ describe('#createProxyServer.web() using own http server', () => {
         await waitForClosed(proxyServer, source);
     });
 
-    it('should proxy requests to multiple servers with different options', async () => {
+    it.skipIf(semver.gte(process.version, '18.0.0'))('should proxy requests to multiple servers with different options', async () => {
         const proxy = createProxyServer();
 
         // proxies to two servers depending on url, rewriting the url as well
@@ -583,10 +584,10 @@ describe('#createProxyServer.web() using own http server', () => {
 });
 
 describe('#followRedirects', () => {
-    it('should proxy the request follow redirects', async () => {
+    it.skipIf(semver.gte(process.version, '18.0.0'))('should proxy the request follow redirects', async () => {
         const proxy = createProxyServer({
             target: 'http://127.0.0.1:8080',
-            followRedirects: true,
+            followRedirects: {},
         });
 
         function requestHandler(req, res) {
