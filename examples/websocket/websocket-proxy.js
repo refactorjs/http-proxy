@@ -25,7 +25,7 @@
 */
 
 import { debug } from 'node:util';
-import { createServer } from '../../lib/http-proxy';
+import { createServer } from '../../src/index';
 import { Server } from 'socket.io';
 import { io } from 'socket.io-client';
 import { getPort } from '../helpers/port';
