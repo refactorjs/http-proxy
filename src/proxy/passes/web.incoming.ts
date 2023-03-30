@@ -131,14 +131,8 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     }
 
     // Ensure we abort proxy if request is aborted
-    req.on('close', function () {
-        if (req.destroyed) {
-            proxyReq.destroy();
-        }
-    });
-
     res.on('close', function () {
-        if (!res.writableFinished) {
+        if (req.destroyed || !res.writableFinished) {
             proxyReq.destroy();
         }
     });
