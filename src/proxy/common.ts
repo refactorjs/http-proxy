@@ -9,7 +9,7 @@ const upgradeHeader = /(^|,)\s*upgrade\s*($|,)/i;
 /**
  * Simple Regex for testing if protocol is https
  */
-export const isSSL = /^https|wss/;
+export const isSSL = /^(?:http|ws)s/;
 
 /**
  * Copies the right headers from `options` and `req` to
@@ -62,7 +62,10 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
     if (options.ca) outgoing.ca = options.ca;
 
     if (sslEnabled) {
-        outgoing.rejectUnauthorized = (typeof options.secure === "undefined") ? true : options.secure;
+        // Respect `NODE_TLS_REJECT_UNAUTHORIZED` environment variable (https://nodejs.org/docs/latest/api/cli.html#node_tls_reject_unauthorizedvalue)
+        const NODE_TLS_REJECT_UNAUTHORIZED = process.env['NODE_TLS_REJECT_UNAUTHORIZED'];
+        const rejectUnauthorizedEnv = typeof NODE_TLS_REJECT_UNAUTHORIZED !== 'undefined' ? NODE_TLS_REJECT_UNAUTHORIZED.toString() : undefined;
+        outgoing.rejectUnauthorized = (typeof options.secure === "undefined") ? (rejectUnauthorizedEnv !== '0') : options.secure;
     }
 
     outgoing.agent = options.agent || false;

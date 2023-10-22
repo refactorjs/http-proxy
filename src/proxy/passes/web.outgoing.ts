@@ -128,7 +128,7 @@ export function writeHeaders(req: IncomingMessage, res: ServerResponse, proxyRes
     // https://nodejs.org/api/http.html#http_message_rawheaders
     if (preserveHeaderKeyCase && proxyRes.rawHeaders != undefined) {
         for (let i = 0; i < proxyRes.rawHeaders.length; i += 2) {
-            let key = proxyRes.rawHeaders[i];
+            const key = proxyRes.rawHeaders[i];
             rawHeaderKeyMap[key.toLowerCase()] = key;
         }
     }

@@ -105,6 +105,8 @@ export declare namespace Server {
         outgoingHeaders?: Record<string, string | number | readonly string[]> | http.IncomingHttpHeaders;
         /** Timeout (in milliseconds) when proxy receives no response from target. Default: 120000 (2 minutes) */
         proxyTimeout?: number;
+        /** specify whether you want to throw a custom `ETIMEDOUT` error when the `proxyTimeout` is reached. If false then the default `ECONNRESET` error will be thrown. Default: false */
+        proxyTimeoutCustomError?: boolean;
         /** Timeout (in milliseconds) for incoming requests */
         timeout?: number;
         /** Specify whether you want to follow redirects. Default: false */

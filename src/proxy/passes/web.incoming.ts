@@ -53,16 +53,18 @@ export function timeout(req: IncomingMessage, res: ServerResponse, options: Serv
 export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Server.ServerOptions): void | boolean {
     if (!options.xfwd) return;
 
-    let encrypted = hasEncryptedConnection(req);
-    let values: Record<string, string | string[] | undefined> = {
+    const encrypted = hasEncryptedConnection(req);
+    const values: Record<string, string | string[] | undefined> = {
         for: req.socket?.remoteAddress,
         port: getPort(req),
         proto: encrypted ? 'https' : 'http'
     };
 
-    for (let header of ['for', 'port', 'proto']) {
+    for (const header of ['for', 'port', 'proto']) {
         const headerName = 'x-forwarded-' + header;
-        if (!req.headers[headerName]) {
+        if (req.headers?.[headerName]) {
+            req.headers[headerName] += `, ${values[header]}`;
+        } else {
             req.headers[headerName] = values[header];
         }
     }
@@ -126,6 +128,12 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     // show an error page at the initial request
     if (options.proxyTimeout) {
         proxyReq.setTimeout(options.proxyTimeout, function () {
+            if (options.proxyTimeoutCustomError) {
+                let timeoutError = new Error('The proxy request timed out');
+                // @ts-ignore - NodeJs does not export code
+                timeoutError.code = 'ETIMEDOUT';
+                return proxyReq.destroy(timeoutError);
+            }
             proxyReq.destroy();
         });
     }
@@ -145,7 +153,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     function createErrorHandler(proxyReq: httpNative.ClientRequest, target: Server.ServerOptions['target']) {
         return function proxyError(err: any) {
-            if (req.socket.destroyed && err.code === 'ECONNRESET') {
+            if (req.socket?.destroyed && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, target);
                 proxyReq.destroy();
                 return;

@@ -74,14 +74,15 @@ $ npm run test
 - **mergeCookies:** `boolean` - allows to merge `set-cookie` headers from passed response and response from target. Default: false.
 - **headers:** `object` - object with extra headers to be added to target requests.
 - **outgoingHeaders:** `object` - object with extra headers to be added to proxy requests.
-- **proxyTimeout:** `number` timeout (in millis) for outgoing proxy requests
-- **timeout:** `number` timeout (in millis) for incoming requests
+- **proxyTimeout:** `number` - timeout (in millis) for outgoing proxy requests
+- **proxyTimeoutCustomError**: `boolean` - specify whether you want to throw a custom `ETIMEDOUT` error when the `proxyTimeout` is reached. If false then the default `ECONNRESET` error will be thrown. Default: false.
+- **timeout:** `number` - timeout (in millis) for incoming requests
 - **followRedirects:** `boolean` - Default: false - specify whether you want to follow redirects
 - **forcePasses:** `boolean` - if set to true the web passes will be run even if `selfHandleResponse` is also set to true. (Default: false)
 - **selfHandleResponse:** `boolean` - if set to true, none of the webOutgoing passes are called and it's your responsibility to appropriately return the response by listening and acting on the `proxyRes` event
-- **createWsClientTransformStream:** `function|null` if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the client websocket will be piped through this stream before being piped to the server, allowing you to influence the request data.
-- **createWsServerTransformStream:** `function|null` if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the server websocket will be piped through this stream before being piped to the client, allowing you to influence the response data.
-- **buffer:** `Buffer` stream of data to send as the request body. Maybe you have some middleware that consumes the request stream before proxying it on e.g. If you read the body of a request into a field called 'req.rawbody' you could restream this field in the buffer option:
+- **createWsClientTransformStream:** `function|null` - if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the client websocket will be piped through this stream before being piped to the server, allowing you to influence the request data.
+- **createWsServerTransformStream:** `function|null` - if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the server websocket will be piped through this stream before being piped to the client, allowing you to influence the response data.
+- **buffer:** `Buffer` - stream of data to send as the request body. Maybe you have some middleware that consumes the request stream before proxying it on e.g. If you read the body of a request into a field called 'req.rawbody' you could restream this field in the buffer option:
     ```ts
     import streamify from 'stream-array'
     import { ProxyServer } from '@refactorjs/http-proxy'

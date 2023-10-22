@@ -570,16 +570,16 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
                     how: 'are you?'
                 }
             };
-    
+
             const res = {
                 setHeader: function (k, v) {
                     this.headers[k] = v;
                 },
                 headers: {}
             };
-    
+
             attachOutgoingHeaders({}, res, proxyRes, { outgoingHeaders: { billy: 'sally' } });
-    
+
             expect(res.headers.hey).toBeUndefined();
             expect(res.headers.how).toBeUndefined();
             expect(res.headers.billy).toEqual('sally');

@@ -314,13 +314,49 @@ describe('#createProxyServer.web() using own http server', () => {
         ).end();
     });
 
+    it('should proxy the request with custom timeout errors (proxyTimeoutCustomError)', (done) => {
+        const proxy = createProxyServer({
+            target: 'http://127.0.0.1:45003',
+            proxyTimeout: 100,
+            proxyTimeoutCustomError: true
+        });
+
+        createServer().listen(45003);
+    
+        const proxyServer = createServer(requestHandler);
+    
+        const started = new Date().getTime();
+
+        function requestHandler(req, res) {
+            proxy.once('error', function (err, errReq, errRes) {
+                proxyServer.close();
+                expect(err).to.be.an(Error);
+                expect(errReq).to.be.equal(req);
+                expect(errRes).to.be.equal(res);
+                expect(new Date().getTime() - started).to.be.greaterThan(99);
+                expect(err.code).to.be('ETIMEDOUT');
+                done();
+            });
+
+            proxy.web(req, res);
+        }
+
+        proxyServer.listen('8074');
+
+        request({
+            hostname: '127.0.0.1',
+            port: '8074',
+            method: 'GET',
+        }, () => {}).end();
+    });
+
     it('should proxy the request and handle timeout error', async () => {
         const proxy = createProxyServer({
-            target: 'http://127.0.0.1:45001',
+            target: 'http://127.0.0.1:45009',
             timeout: 100,
         });
 
-        net.createServer().listen(45001);
+        net.createServer().listen(45009);
 
         const proxyServer = createServer(requestHandler);
 
@@ -338,12 +374,12 @@ describe('#createProxyServer.web() using own http server', () => {
             proxy.web(req, res);
         }
 
-        proxyServer.listen('8085');
+        proxyServer.listen('8075');
 
         const req = request(
             {
                 hostname: '127.0.0.1',
-                port: '8085',
+                port: '8075',
                 method: 'GET',
             }, function () { });
 
@@ -505,9 +541,9 @@ describe('#createProxyServer.web() using own http server', () => {
         await waitForClosed(proxyServer, source);
     });
 
-    it.skipIf(semver.gte(process.version, '18.0.0'))('should proxy the request with the Authorization header set', async () => {
+    it('should proxy the request with the Authorization header set', async () => {
         const proxy = createProxyServer({
-            target: 'http://127.0.0.1:8080',
+            target: 'http://127.0.0.1:8091',
             auth: 'user:pass',
         });
 
@@ -527,13 +563,13 @@ describe('#createProxyServer.web() using own http server', () => {
         });
 
         proxyServer.listen('8081');
-        source.listen('8080');
+        source.listen('8091');
 
         request('http://127.0.0.1:8081', function () { }).end();
         await waitForClosed(proxyServer, source);
     });
 
-    it.skipIf(semver.gte(process.version, '18.0.0'))('should proxy requests to multiple servers with different options', async () => {
+    it('should proxy requests to multiple servers with different options', async () => {
         const proxy = createProxyServer();
 
         // proxies to two servers depending on url, rewriting the url as well
@@ -543,11 +579,11 @@ describe('#createProxyServer.web() using own http server', () => {
             if (req.url.indexOf('/s1/') === 0) {
                 proxy.web(req, res, {
                     ignorePath: true,
-                    target: 'http://127.0.0.1:8081' + req.url.substring(3),
+                    target: 'http://127.0.0.1:8092' + req.url.substring(3),
                 });
             } else {
                 proxy.web(req, res, {
-                    target: 'http://127.0.0.1:8082',
+                    target: 'http://127.0.0.1:8093',
                 });
             }
         }
@@ -558,7 +594,7 @@ describe('#createProxyServer.web() using own http server', () => {
             res.end();
             source1.close();
             expect(req.method).toEqual('GET');
-            expect(req.headers.host.split(':')[1]).toEqual('8080');
+            expect(req.headers.host.split(':')[1]).toEqual('8090');
             expect(req.url).toEqual('/test1');
         });
 
@@ -566,16 +602,16 @@ describe('#createProxyServer.web() using own http server', () => {
             res.end();
             source2.close();
             expect(req.method).toEqual('GET');
-            expect(req.headers.host.split(':')[1]).toEqual('8080');
+            expect(req.headers.host.split(':')[1]).toEqual('8090');
             expect(req.url).toEqual('/test2');
         });
 
-        proxyServer.listen('8080');
-        source1.listen('8081');
-        source2.listen('8082');
+        proxyServer.listen('8090');
+        source1.listen('8092');
+        source2.listen('8093');
 
-        request('http://127.0.0.1:8080/s1/test1', function () { }).end();
-        request('http://127.0.0.1:8080/test2', function () { }).end();
+        request('http://127.0.0.1:8090/s1/test1', function () { }).end();
+        request('http://127.0.0.1:8090/test2', function () { }).end();
 
         await waitForClosed(source1, source2);
         proxyServer.close();
@@ -584,7 +620,7 @@ describe('#createProxyServer.web() using own http server', () => {
 });
 
 describe('#followRedirects', () => {
-    it.skipIf(semver.gte(process.version, '18.0.0'))('should proxy the request follow redirects', async () => {
+    it('should proxy the request follow redirects', async () => {
         const proxy = createProxyServer({
             target: 'http://127.0.0.1:8080',
             followRedirects: {},
