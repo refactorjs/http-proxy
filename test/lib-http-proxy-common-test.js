@@ -462,6 +462,18 @@ describe('src/proxy/common.ts', () => {
                 expect(outgoing.trackRedirects).toEqual(true);
             });
         });
+
+        it('should pass through lookup', () => {
+            const outgoing = {};
+            function lookup(hostname, options, callback) {
+                callback('This is just a test');
+            }
+            setupOutgoing(outgoing, {
+                target: new URL('http://example.com'),
+                lookup: lookup,
+            }, { url: '' });
+            expect(outgoing.lookup).toBe(lookup);
+        });
     });
 
     describe('#setupSocket', () => {

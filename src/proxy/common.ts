@@ -68,6 +68,10 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
         outgoing.rejectUnauthorized = (typeof options.secure === "undefined") ? (rejectUnauthorizedEnv !== '0') : options.secure;
     }
 
+    if (options.lookup) {
+        outgoing.lookup = options.lookup;
+    }
+
     outgoing.agent = options.agent || false;
     outgoing.localAddress = options.localAddress;
 

@@ -121,6 +121,8 @@ export declare namespace Server {
         createWsServerTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket;
         /** Buffer */
         buffer?: buffer.Buffer;
+        /** Custom lookup function to pass to http(s).request */
+        lookup?: net.LookupFunction | undefined;
     }
 
     type StartCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl) => void;

@@ -5,7 +5,6 @@ import { parallel } from 'async';
 import { createServer, get, request } from 'node:http';
 import { describe, expect, it } from 'vitest';
 import { waitForClosed } from './util';
-import semver from 'semver'
 import net from 'node:net';
 
 describe('src/proxy/passes/web.incoming.ts', () => {
@@ -620,9 +619,9 @@ describe('#createProxyServer.web() using own http server', () => {
 });
 
 describe('#followRedirects', () => {
-    it.skip('should proxy the request follow redirects', async () => {
+    it('should proxy the request follow redirects', async () => {
         const proxy = createProxyServer({
-            target: 'http://127.0.0.1:8080',
+            target: 'http://127.0.0.1:8099',
             followRedirects: {},
         });
 
@@ -642,10 +641,10 @@ describe('#followRedirects', () => {
             res.end();
         });
 
-        proxyServer.listen('8081');
-        source.listen('8080');
+        proxyServer.listen('8098');
+        source.listen('8099');
 
-        request('http://127.0.0.1:8081', function (res) {
+        request('http://127.0.0.1:8098', function (res) {
             source.close();
             proxyServer.close();
             expect(res.statusCode).toEqual(200);

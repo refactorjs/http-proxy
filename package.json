@@ -1,13 +1,12 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/refactorjs/http-proxy.git"
     },
     "license": "MIT",
-    "sideEffects": false,
     "type": "module",
     "exports": {
         ".": {
