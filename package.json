@@ -30,7 +30,7 @@
     },
     "devDependencies": {
         "@types/follow-redirects": "^1.14.3",
-        "@types/node": "^18",
+        "@types/node": "^20",
         "@types/requires-port": "^1.0.2",
         "async": "^3.2.4",
         "concat-stream": "^2.0.0",
