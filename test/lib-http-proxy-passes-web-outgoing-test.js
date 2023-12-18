@@ -1,4 +1,4 @@
-import { attachOutgoingHeaders, removeChunked, setConnection, setRedirectHostRewrite, writeHeaders, writeStatusCode } from '../src/proxy/passes/web.outgoing';
+import { attachOutgoingHeaders, removeChunked, chunkedResponse, setConnection, setRedirectHostRewrite, writeHeaders, writeStatusCode } from '../src/proxy/passes/web.outgoing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('src/proxy/passes/web.outgoing.ts', () => {
@@ -598,5 +598,25 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
 
             expect(proxyRes.headers['transfer-encoding']).toEqual(undefined);
         });
+    });
+
+    describe("#chunkedHeader", function () {
+        it('flushes chunked response header', () => {
+            const proxyRes = {
+                headers: {
+                    'transfer-encoding': 'chunked',
+                },
+            };
+            let b = false;
+            const res = {
+                flushHeaders: () => {
+                    b = true;
+                },
+            };
+
+            chunkedResponse({}, res, proxyRes);
+
+            expect(b).toEqual(true);
+        })
     });
 });

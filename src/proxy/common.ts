@@ -86,18 +86,6 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
         }
     }
 
-    //
-    // Set up options for followRedirects library.
-    // https://github.com/follow-redirects/follow-redirects#per-request-options
-    //
-    if (options.followRedirects && typeof (options.followRedirects) === "object") {
-        outgoing.maxRedirects = options.followRedirects.maxRedirects;
-        outgoing.maxBodyLength = options.followRedirects.maxBodyLength;
-        outgoing.agents = options.followRedirects.agents;
-        outgoing.beforeRedirect = options.followRedirects.beforeRedirect;
-        outgoing.trackRedirects = options.followRedirects.trackRedirects;
-    }
-
     const targetPath = target && options.prependPath !== false ? (target.pathname || '') : '';
 
     //
@@ -182,7 +170,7 @@ export function getPort(req: IncomingMessage): string {
  * @api private
  */
 export function hasEncryptedConnection(req: IncomingMessage): boolean {
-    return req.socket instanceof TLSSocket && req.socket.encrypted;
+    return req.socket instanceof TLSSocket && req.socket?.encrypted;
 };
 
 /**

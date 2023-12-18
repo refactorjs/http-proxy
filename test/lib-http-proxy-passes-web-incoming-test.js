@@ -69,9 +69,9 @@ describe('src/proxy/passes/web.incoming.ts', () => {
 
         it('set the correct x-forwarded-* headers', () => {
             webIncoming.XHeaders(stubRequest, {}, { xfwd: true });
-            expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.2');
-            expect(stubRequest.headers['x-forwarded-port']).toBe('8080');
-            expect(stubRequest.headers['x-forwarded-proto']).toBe('http');
+            expect(stubRequest.headers['X-Forwarded-For']).toBe('192.168.1.2');
+            expect(stubRequest.headers['X-Forwarded-Port']).toBe('8080');
+            expect(stubRequest.headers['X-Forwarded-Proto']).toBe('http');
         });
     });
 });
@@ -615,42 +615,5 @@ describe('#createProxyServer.web() using own http server', () => {
         await waitForClosed(source1, source2);
         proxyServer.close();
         await waitForClosed(proxyServer);
-    });
-});
-
-describe('#followRedirects', () => {
-    // doesnt work on node 20 for some reason
-    it.skip('should proxy the request follow redirects', async () => {
-        const proxy = createProxyServer({
-            target: 'http://127.0.0.1:8099',
-            followRedirects: {},
-        });
-
-        function requestHandler(req, res) {
-            proxy.web(req, res);
-        }
-
-        const proxyServer = createServer(requestHandler);
-
-        const source = createServer(function (req, res) {
-            if (new URL(req.url, 'http://example.com').pathname === '/redirect') {
-                res.writeHead(200, { 'Content-Type': 'text/plain' });
-                res.end('ok');
-            }
-
-            res.writeHead(301, { Location: '/redirect' });
-            res.end();
-        });
-
-        proxyServer.listen('8098');
-        source.listen('8099');
-
-        request('http://127.0.0.1:8098', function (res) {
-            source.close();
-            proxyServer.close();
-            expect(res.statusCode).toEqual(200);
-        }).end();
-
-        await waitForClosed(proxyServer, source);
     });
 });

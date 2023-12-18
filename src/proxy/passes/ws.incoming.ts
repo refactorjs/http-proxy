@@ -3,7 +3,7 @@ import type { ProxyServer } from '../'
 import type { Buffer } from 'node:buffer';
 import type { Socket } from 'node:net';
 import http, { IncomingMessage, IncomingHttpHeaders } from 'node:http';
-import https from 'node:https';
+import https, { RequestOptions } from 'node:https';
 import { getPort, hasEncryptedConnection, isSSL, setupOutgoing, setupSocket } from '../common';
 
 /**
@@ -28,7 +28,7 @@ export function checkMethodAndHeader(req: IncomingMessage, socket: Socket): void
 }
 
 /**
- * Sets `x-forwarded-*` headers if specified in config.
+ * Sets `X-Forwarded-*` headers if specified in config.
  *
  * @param { IncomingMessage } req Request object
  * @param { Socket } socket Socket object
@@ -40,15 +40,21 @@ export function checkMethodAndHeader(req: IncomingMessage, socket: Socket): void
 export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.ServerOptions): void {
     if (!options.xfwd) return;
 
-    let values: Record<string, unknown> = {
-        for: req.socket.remoteAddress,
-        port: getPort(req),
-        proto: hasEncryptedConnection(req) ? 'wss' : 'ws'
+    const encrypted = hasEncryptedConnection(req);
+    const values: Record<string, string | string[] | undefined> = {
+        For: req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+        Port: getPort(req),
+        Proto: encrypted ? 'wss' : 'ws'
     };
 
-    ['for', 'port', 'proto'].forEach(function (header) {
-        req.headers['x-forwarded-' + header] = (req.headers['x-forwarded-' + header] || '') + (req.headers['x-forwarded-' + header] ? ',' : '') + values[header];
-    });
+    for (const header of ['For', 'Port', 'Proto']) {
+        const headerName = 'X-Forwarded-' + header;
+        if (req.headers?.[headerName]) {
+            req.headers[headerName] += `, ${values[header]}`;
+        } else {
+            req.headers[headerName] = values[header];
+        }
+    }
 }
 
 /**
@@ -86,7 +92,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         socket.unshift(head);
     }
 
-    const proxyReq = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http).request(setupOutgoing((options.ssl || {}) as OutgoingOptions, options as OutgoingOptions, req) as any);
+    const proxyReq = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http).request(setupOutgoing((options.ssl || {}) as OutgoingOptions, options as OutgoingOptions, req) as RequestOptions);
 
     // Error Handler
     proxyReq.on('error', onOutgoingError);
@@ -126,10 +132,7 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         //
         if (!req.headers['x-method-ori']) {
             // if only not switch request method, like from connect to websocket
-            socket.write('HTTP/1.1 101 Switching Protocols\r\n');
-            socket.write(Object.keys(proxyRes.headers).map(function (i) {
-                return i + ": " + proxyRes.headers[i];
-            }).join('\r\n') + '\r\n\r\n');
+            socket.write(createHttpHeader('HTTP/1.1 101 Switching Protocols', proxyRes.headers));
         }
 
         let proxyStream = proxySocket;

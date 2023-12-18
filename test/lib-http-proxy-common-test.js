@@ -429,40 +429,6 @@ describe('src/proxy/common.ts', () => {
             expect(outgoing.path).toBe('/');
         });
 
-        describe("when using followRedirects", () => {
-            it('should pass all options', () => {
-                const outgoing = {};
-                setupOutgoing(outgoing, {
-                    agent: '?',
-                    target: {
-                        host: 'how',
-                        hostname: 'are',
-                        socketPath: 'you',
-                        protocol: 'https:'
-                    },
-                    followRedirects: {
-                        maxRedirects: 5,
-                        maxBodyLength: 10000000,
-                        agents: { http: 'http', https: 'https' },
-                        beforeRedirect: function (options, headers) {
-                            options.agent = '??';
-                        },
-                        trackRedirects: true,
-                    }
-                }, { method: 'i', url: 'am' });
-
-                expect(outgoing.maxRedirects).toEqual(5);
-                expect(outgoing.maxBodyLength).toEqual(10000000);
-                expect(outgoing.agents.http).toEqual('http');
-                expect(outgoing.agents.https).toEqual('https');
-                var options = { agent: '?' };
-                var headers = {};
-                outgoing.beforeRedirect(options, headers);
-                expect(options.agent).toEqual('??');
-                expect(outgoing.trackRedirects).toEqual(true);
-            });
-        });
-
         it('should pass through lookup', () => {
             const outgoing = {};
             function lookup(hostname, options, callback) {

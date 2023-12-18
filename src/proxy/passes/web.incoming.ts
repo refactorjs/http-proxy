@@ -1,11 +1,9 @@
-import type { Server } from '../../types'
+import type { Server, OutgoingOptions } from '../../types'
 import type { ProxyServer } from '../'
 import type { Socket } from 'node:net';
 import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
-import { pipeline } from 'node:stream';
 import httpNative, { IncomingMessage, ServerResponse } from 'node:http';
-import httpsNative from 'node:https';
-import followRedirects from 'follow-redirects';
+import httpsNative, { RequestOptions } from 'node:https';
 import * as webOutgoing from './web.outgoing';
 
 const passes = Object.keys(webOutgoing).map(pass => webOutgoing[pass as keyof typeof webOutgoing]);
@@ -55,13 +53,13 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
 
     const encrypted = hasEncryptedConnection(req);
     const values: Record<string, string | string[] | undefined> = {
-        for: req.socket?.remoteAddress,
-        port: getPort(req),
-        proto: encrypted ? 'https' : 'http'
+        For: req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+        Port: getPort(req),
+        Proto: encrypted ? 'https' : 'http'
     };
 
-    for (const header of ['for', 'port', 'proto']) {
-        const headerName = 'x-forwarded-' + header;
+    for (const header of ['For', 'Port', 'Proto']) {
+        const headerName = 'X-Forwarded-' + header;
         if (req.headers?.[headerName]) {
             req.headers[headerName] += `, ${values[header]}`;
         } else {
@@ -69,7 +67,7 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
         }
     }
 
-    req.headers['x-forwarded-host'] = req.headers['x-forwarded-host'] || req.headers['host'] || '';
+    req.headers["X-Forwarded-Host"] = req.headers["X-Forwarded-Host"] || req.headers.host || "";
 }
 
 /**
@@ -88,15 +86,12 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     // And we begin!
     server.emit('start', req, res, options.target || options.forward);
 
-    const agents = options.followRedirects ? followRedirects : nativeAgents;
-    const http = agents.http;
-    const https = agents.https;
+    const http = nativeAgents.http;
+    const https = nativeAgents.https;
 
     if (options.forward) {
         // If forward enable, so just pipe the request
-        const forwardReq: httpNative.ClientRequest = (isSSL.test(options.forward!['protocol' as keyof Server.ServerOptions['target']]) ? https : http)
-        // @ts-ignore - Incompatibilities with follow-redirects types
-        .request(setupOutgoing(options.ssl || {}, options, req, 'forward'));
+        const forwardReq = (isSSL.test(options.forward!['protocol' as keyof Server.ServerOptions['target']]) ? https : http).request(setupOutgoing((options.ssl || {}) as OutgoingOptions, options as OutgoingOptions, req, 'forward') as RequestOptions);
 
         // error handler (e.g. ECONNRESET, ECONNREFUSED)
         // Handle errors on incoming request as well as it makes sense to
@@ -104,7 +99,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
         req.on('error', forwardError);
         forwardReq.on('error', forwardError);
 
-        pipeline(options.buffer || req, forwardReq, () => { })
+        (options.buffer || req).pipe(forwardReq);
 
         if (!options.target) {
             return res.end();
@@ -112,16 +107,14 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     }
 
     // Request initalization
-
-    const proxyReq: httpNative.ClientRequest = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http)
-    // @ts-ignore - Incompatibilities with follow-redirects types
-    .request(setupOutgoing(options.ssl || {}, options, req));
+    const proxyReq = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http).request(setupOutgoing((options.ssl || {}) as OutgoingOptions, options as OutgoingOptions, req) as RequestOptions);
 
     // Enable developers to modify the proxyReq before headers are sent
     proxyReq.on('socket', function (socket: Socket) {
         if (server && !proxyReq.getHeader('expect')) {
             server.emit('proxyReq', proxyReq, req, res, options);
         }
+        (options.buffer || req).pipe(proxyReq);
     });
 
     // allow outgoing socket to timeout so that we could
@@ -167,8 +160,6 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
         }
     }
 
-    pipeline(options.buffer || req, proxyReq, () => { });
-
     proxyReq.on('response', function (proxyRes: IncomingMessage) {
         if (server) {
             server.emit('proxyRes', proxyRes, req, res, options);
@@ -193,7 +184,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
             });
             // We pipe to the response unless its expected to be handled by the user
             if (!selfHandle) {
-                pipeline(proxyRes, res, () => { });
+                proxyRes.pipe(res);
             }
         } else {
             if (server) {

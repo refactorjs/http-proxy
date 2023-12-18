@@ -1,6 +1,6 @@
-import type { Server, WebPassthrough, WsPassthrough } from '../types'
+import type { Server, WebPassthrough, WsPassthrough } from '../types';
 import type { Socket } from 'node:net';
-import { Buffer } from 'node:buffer'
+import { Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import http, { IncomingMessage, ServerResponse } from 'node:http';
 import https from 'node:https';

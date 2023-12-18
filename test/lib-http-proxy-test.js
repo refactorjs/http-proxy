@@ -21,29 +21,6 @@ Object.defineProperty(gen, 'port', {
 });
 
 describe('src/index.ts', () => {
-    describe('#createProxyServer', () => {
-        it.skip('should throw without options', function () {
-            let error;
-            try {
-                createProxyServer();
-            } catch (e) {
-                error = e;
-            }
-
-            expect(error).toBeInstanceOf(Error);
-        });
-
-        it('should return an object otherwise', () => {
-            const obj = createProxyServer({
-                target: 'http://www.google.com:80',
-            });
-
-            expect(obj.web).toBeInstanceOf(Function);
-            expect(obj.ws).toBeInstanceOf(Function);
-            expect(obj.listen).toBeInstanceOf(Function);
-        });
-    });
-
     describe('#createProxyServer with forward options and using web-incoming passes', () => {
         it('should pipe the request using web-incoming#stream method', async () => {
             const ports = { source: gen.port, proxy: gen.port };

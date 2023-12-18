@@ -93,9 +93,10 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
                 },
             };
             XHeaders(stubRequest, {}, { xfwd: true });
-            expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.2');
-            expect(stubRequest.headers['x-forwarded-port']).toBe('8080');
-            expect(stubRequest.headers['x-forwarded-proto']).toBe('ws');
+
+            expect(stubRequest.headers['X-Forwarded-For']).toBe('192.168.1.2');
+            expect(stubRequest.headers['X-Forwarded-Port']).toBe('8080');
+            expect(stubRequest.headers['X-Forwarded-Proto']).toBe('ws');
         });
 
         it('set the correct x-forwarded-* headers from req.socket', () => {
@@ -110,8 +111,8 @@ describe('src/proxy/passes/ws.incoming.ts', () => {
                 },
             };
             XHeaders(stubRequest, {}, { xfwd: true });
-            expect(stubRequest.headers['x-forwarded-for']).toBe('192.168.1.3');
-            expect(stubRequest.headers['x-forwarded-port']).toBe('8181');
+            expect(stubRequest.headers['X-Forwarded-For']).toBe('192.168.1.3');
+            expect(stubRequest.headers['X-Forwarded-Port']).toBe('8181');
             // This won't work because Xheaders expects the socket to be an
             // instance of TLSSocket which is only available with an ssl cert
             // for encryption

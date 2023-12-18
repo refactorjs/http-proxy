@@ -3,8 +3,8 @@ import * as net from 'node:net';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as buffer from 'node:buffer';
-import type { FollowOptions } from 'follow-redirects';
-import type { ProxyServer } from './proxy'
+import * as stream from 'node:stream';
+import type { ProxyServer } from './proxy';
 
 export interface ProxyTargetDetailed {
     host: string;
@@ -33,11 +33,6 @@ export interface OutgoingOptions extends ProxyTargetDetailed, Server.ServerOptio
     agent?: Server.ServerOptions['agent'];
     auth?: Server.ServerOptions['auth'];
     rejectUnauthorized?: boolean;
-    maxRedirects?: FollowOptions<any>['maxRedirects']
-    maxBodyLength?: FollowOptions<any>['maxBodyLength']
-    agents?: FollowOptions<any>['agents']
-    beforeRedirect?: FollowOptions<any>['beforeRedirect']
-    trackRedirects?: FollowOptions<any>['trackRedirects']
 }
 
 export interface WebPassthrough {
@@ -109,8 +104,6 @@ export declare namespace Server {
         proxyTimeoutCustomError?: boolean;
         /** Timeout (in milliseconds) for incoming requests */
         timeout?: number;
-        /** Specify whether you want to follow redirects. Default: false */
-        followRedirects?: FollowOptions<any> | false;
         /** if set to true the web passes will be run even if `selfHandleResponse` is also set to true. */
         forcePasses?: boolean;
         /** If set to true, none of the webOutgoing passes are called and it's your responsibility to appropriately return the response by listening and acting on the proxyRes event */
@@ -120,7 +113,7 @@ export declare namespace Server {
         /** if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the server websocket will be piped through this stream before being piped to the client, allowing you to influence the response data. */
         createWsServerTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket;
         /** Buffer */
-        buffer?: buffer.Buffer;
+        buffer?: stream.Stream;
         /** Custom lookup function to pass to http(s).request */
         lookup?: net.LookupFunction | undefined;
     }

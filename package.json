@@ -1,6 +1,6 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.1.9",
+    "version": "0.2.0",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",
@@ -25,27 +25,25 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "follow-redirects": "^1.15.3",
         "requires-port": "^1.0.0"
     },
     "devDependencies": {
-        "@types/follow-redirects": "^1.14.3",
-        "@types/node": "^18",
-        "@types/requires-port": "^1.0.2",
-        "async": "^3.2.4",
+        "@types/node": "^20",
+        "@types/requires-port": "^1.0.3",
+        "async": "^3.2.5",
         "concat-stream": "^2.0.0",
         "nyc": "^15.1.0",
         "semver": "^7.5.4",
         "socket.io": "^4.7.2",
         "socket.io-client": "^4.7.2",
         "sse": "0.0.8",
-        "typescript": "^5.2.2",
+        "typescript": "^5.3.3",
         "unbuild": "^2.0.0",
-        "vitest": "^0.34.6",
-        "ws": "^8.14.2"
+        "vitest": "^1.0.4",
+        "ws": "^8.15.1"
     },
     "engines": {
-        "node": ">=14.13.1"
+        "node": ">=18.0.0"
     },
     "bugs": {
         "url": "https://github.com/refactorjs/http-proxy/issues"
