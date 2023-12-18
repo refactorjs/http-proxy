@@ -176,19 +176,3 @@ export function writeStatusCode(req: IncomingMessage, res: ServerResponse, proxy
         res.statusCode = proxyRes.statusCode as number;
     }
 }
-
-/**
- * If is a chunked response, flush headers.
- *
- * @param { IncomingMessage } req Request object
- * @param { ServerResponse } res Response object
- * @param { IncomingMessage } proxyRes Response object from the proxy request
- *
- * @api private
- */
-export function chunkedResponse(req: IncomingMessage, res: ServerResponse, proxyRes: IncomingMessage) {
-    const transferHeader = proxyRes.headers['transfer-encoding'];
-    if (transferHeader && transferHeader.toLowerCase() === 'chunked') {
-        res.flushHeaders();
-    }
-}

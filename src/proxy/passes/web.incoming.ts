@@ -160,6 +160,8 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
         }
     }
 
+    (options.buffer || req).pipe(proxyReq);
+
     proxyReq.on('response', function (proxyRes: IncomingMessage) {
         if (server) {
             server.emit('proxyRes', proxyRes, req, res, options);

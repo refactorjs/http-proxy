@@ -599,24 +599,4 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
             expect(proxyRes.headers['transfer-encoding']).toEqual(undefined);
         });
     });
-
-    describe("#chunkedHeader", function () {
-        it('flushes chunked response header', () => {
-            const proxyRes = {
-                headers: {
-                    'transfer-encoding': 'chunked',
-                },
-            };
-            let b = false;
-            const res = {
-                flushHeaders: () => {
-                    b = true;
-                },
-            };
-
-            chunkedResponse({}, res, proxyRes);
-
-            expect(b).toEqual(true);
-        })
-    });
 });
