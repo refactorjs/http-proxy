@@ -1,5 +1,5 @@
-import type { Server, OutgoingOptions } from '../../types'
-import type { ProxyServer } from '../'
+import type { Server, OutgoingOptions } from '../../types';
+import type { ProxyServer } from '../';
 import type { Socket } from 'node:net';
 import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
 import httpNative, { IncomingMessage, ServerResponse } from 'node:http';
@@ -67,7 +67,7 @@ export function XHeaders(req: IncomingMessage, res: ServerResponse, options: Ser
         }
     }
 
-    req.headers["X-Forwarded-Host"] = req.headers["X-Forwarded-Host"] || req.headers.host || "";
+    req.headers['X-Forwarded-Host'] = req.headers['X-Forwarded-Host'] || req.headers.host || '';
 }
 
 /**
@@ -111,10 +111,18 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     // Enable developers to modify the proxyReq before headers are sent
     proxyReq.on('socket', function (socket: Socket) {
+        if (socket.pending) {
+            // if not connected, wait till connect to pipe
+            socket.on('connect', () => (options.buffer || req).pipe(proxyReq));
+        }
+        else {
+            // socket is connected (reused?), just pipe
+            (options.buffer || req).pipe(proxyReq);
+        }
+
         if (server && !proxyReq.getHeader('expect')) {
             server.emit('proxyReq', proxyReq, req, res, options);
         }
-        (options.buffer || req).pipe(proxyReq);
     });
 
     // allow outgoing socket to timeout so that we could
@@ -146,7 +154,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     function createErrorHandler(proxyReq: httpNative.ClientRequest, target: Server.ServerOptions['target']) {
         return function proxyError(err: any) {
-            if (req.socket?.destroyed && err.code === 'ECONNRESET') {
+            if (req.destroyed && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, target);
                 proxyReq.destroy();
                 return;
@@ -159,8 +167,6 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
             }
         }
     }
-
-    (options.buffer || req).pipe(proxyReq);
 
     proxyReq.on('response', function (proxyRes: IncomingMessage) {
         if (server) {

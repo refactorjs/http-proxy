@@ -72,6 +72,7 @@ describe('src/proxy/passes/web.incoming.ts', () => {
             expect(stubRequest.headers['X-Forwarded-For']).toBe('192.168.1.2');
             expect(stubRequest.headers['X-Forwarded-Port']).toBe('8080');
             expect(stubRequest.headers['X-Forwarded-Proto']).toBe('http');
+            expect(stubRequest.headers['X-Forwarded-Host']).toBe('192.168.1.2:8080');
         });
     });
 });

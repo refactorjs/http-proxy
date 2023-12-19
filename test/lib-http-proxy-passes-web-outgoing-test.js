@@ -30,7 +30,7 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
             beforeEach(() => {
                 testContext.options.hostRewrite = 'ext-manual.com';
             });
-            [201, 301, 302, 307, 308].forEach(function (code) {
+            [201, 301, 302, 303, 307, 308].forEach(function (code) {
                 it('on ' + code, () => {
                     testContext.proxyRes.statusCode = code;
                     setRedirectHostRewrite(
@@ -117,7 +117,7 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
             beforeEach(() => {
                 testContext.options.autoRewrite = true;
             });
-            [201, 301, 302, 307, 308].forEach(function (code) {
+            [201, 301, 302, 303, 307, 308].forEach(function (code) {
                 it('on ' + code, () => {
                     testContext.proxyRes.statusCode = code;
                     setRedirectHostRewrite(
@@ -191,7 +191,7 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
             beforeEach(() => {
                 testContext.options.protocolRewrite = 'https';
             });
-            [201, 301, 302, 307, 308].forEach(function (code) {
+            [201, 301, 302, 303, 307, 308].forEach(function (code) {
                 it('on ' + code, () => {
                     testContext.proxyRes.statusCode = code;
                     setRedirectHostRewrite(
@@ -424,6 +424,22 @@ describe('src/proxy/passes/web.outgoing.ts', () => {
 
         it('writes raw headers', () => {
             const options = {};
+            writeHeaders({}, testContext.res, testContext.rawProxyRes, options);
+
+            expect(testContext.res.headers.hey).toEqual('hello');
+            expect(testContext.res.headers.how).toEqual('are you?');
+
+            expect(testContext.res.headers).toHaveProperty('set-cookie');
+            expect(testContext.res.headers['set-cookie']).toBeInstanceOf(Array);
+            expect(testContext.res.headers['set-cookie']).toHaveLength(2);
+        });
+
+        it('skips invalid headers', function () {
+            const options = {};
+            testContext.rawProxyRes.rawHeaders = testContext.rawProxyRes.rawHeaders.concat([
+                'Set-Cookie', 'invalid\\u0001header; domain=my.domain; path=/'
+            ])
+
             writeHeaders({}, testContext.res, testContext.rawProxyRes, options);
 
             expect(testContext.res.headers.hey).toEqual('hello');

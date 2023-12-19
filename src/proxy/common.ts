@@ -1,4 +1,4 @@
-import type { OutgoingOptions } from '../types'
+import type { OutgoingOptions } from '../types';
 import type { IncomingMessage } from 'node:http';
 import type { Socket } from 'node:net';
 import { TLSSocket } from 'node:tls';
@@ -45,7 +45,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
     outgoing.port = target.port || (sslEnabled ? 443 : 80);
 
     for (const opt of ['host', 'hostname', 'socketPath', 'pfx', 'key', 'passphrase', 'cert', 'ca', 'ciphers', 'secureProtocol', 'servername']) {
-        (outgoing as any)[opt] = target[opt as keyof typeof target];
+        (outgoing as any)[opt] = (outgoing as any)[opt] || target[opt as keyof typeof target];
     }
 
     outgoing.method = options.method || req.method;

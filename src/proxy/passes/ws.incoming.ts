@@ -1,5 +1,5 @@
-import type { Server, OutgoingOptions } from '../../types'
-import type { ProxyServer } from '../'
+import type { Server, OutgoingOptions } from '../../types';
+import type { ProxyServer } from '../';
 import type { Buffer } from 'node:buffer';
 import type { Socket } from 'node:net';
 import http, { IncomingMessage, IncomingHttpHeaders } from 'node:http';
@@ -55,6 +55,8 @@ export function XHeaders(req: IncomingMessage, socket: Socket, options: Server.S
             req.headers[headerName] = values[header];
         }
     }
+
+    req.headers['X-Forwarded-Host'] = req.headers['X-Forwarded-Host'] || req.headers.host || '';
 }
 
 /**
