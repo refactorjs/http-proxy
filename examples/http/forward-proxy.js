@@ -26,7 +26,7 @@
 
 import { createServer } from 'node:http';
 import { createServer as _createServer } from '../../src/index';
-import { getPort } from '../helpers/port';
+import { getPort, setServers } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -34,7 +34,7 @@ const targetPort = getPort();
 //
 // Setup proxy server with forwarding
 //
-_createServer({
+const proxy = _createServer({
     forward: {
         port: targetPort,
         host: 'localhost',
@@ -44,7 +44,7 @@ _createServer({
 //
 // Target Http Forwarding Server
 //
-createServer(function (req, res) {
+const server = createServer(function (req, res) {
     console.log('Receiving forward for: ' + req.url);
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.write(
@@ -55,6 +55,8 @@ createServer(function (req, res) {
     );
     res.end();
 }).listen(targetPort);
+
+setServers(proxy, server)
 
 console.log(
     'http proxy server started on port ' + proxyPort + ' with forward proxy',

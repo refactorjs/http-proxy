@@ -25,7 +25,7 @@
 */
 import http from 'node:http';
 import { createServer } from '../../src/index';
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 const welcome = [
     '#    # ##### ##### #####        #####  #####   ####  #    # #   #',
@@ -44,14 +44,14 @@ const proxyPort = getPort();
 //
 // Basic Http Proxy Server
 //
-createServer({
+const proxy = createServer({
     target: 'http://localhost:' + targetPort,
 }).listen(proxyPort);
 
 //
 // Target Http Server
 //
-http.createServer(function (req, res) {
+const server = http.createServer(function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.write(
         'request successfully proxied to: ' +
@@ -61,6 +61,8 @@ http.createServer(function (req, res) {
     );
     res.end();
 }).listen(targetPort);
+
+setServers(proxy, server)
 
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

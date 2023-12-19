@@ -111,7 +111,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
     //
     outgoingPath = !options.ignorePath ? outgoingPath : '';
 
-    outgoing.path = [targetPath, outgoingPath].filter(Boolean).join('/').replace(/\/+/g, '/') + params
+    outgoing.path = [targetPath, outgoingPath].filter(Boolean).join('/').replace(/\/+/g, '/').replace(/http:\//g, 'http://').replace(/https:\//g, 'https://') + params
 
     if (options.changeOrigin) {
         outgoing.headers.host = required(outgoing.port, target.protocol!) && !hasPort(outgoing.host.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;

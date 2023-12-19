@@ -25,7 +25,7 @@
 */
 import http from 'node:http';
 import { createServer } from '../../src/index';
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 //
 // A simple round-robin load balancing strategy.
@@ -44,23 +44,25 @@ const addresses = [
 ];
 const proxy = createServer();
 
-http.createServer(function (req, res) {
-        //
-        // On each request, get the first location from the list...
-        //
-        const target = { target: addresses.shift() };
+const server = http.createServer(function (req, res) {
+    //
+    // On each request, get the first location from the list...
+    //
+    const target = { target: addresses.shift() };
 
-        //
-        // ...then proxy to the server whose 'turn' it is...
-        //
-        console.log('balancing request to: ', target);
-        proxy.web(req, res, target);
+    //
+    // ...then proxy to the server whose 'turn' it is...
+    //
+    console.log('balancing request to: ', target);
+    proxy.web(req, res, target);
 
-        //
-        // ...and then the server you just used becomes the last item in the list.
-        //
-        addresses.push(target.target);
-    })
-    .listen(getPort());
+    //
+    // ...and then the server you just used becomes the last item in the list.
+    //
+    addresses.push(target.target);
+})
+.listen(getPort());
+    
+setServers(server, proxy)
 
 // Rinse; repeat; enjoy.

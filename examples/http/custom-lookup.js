@@ -1,7 +1,8 @@
 import { createServer } from '../../src/index';
+import { setServers } from '../helpers/port';
 import dns from 'node:dns'
 
-createServer({
+const proxy = createServer({
     target: 'http://example.com:80',
     changeOrigin: true,
 
@@ -16,5 +17,7 @@ createServer({
         });
     },
 }).listen(8003);
+
+setServers(proxy)
 
 console.log('http proxy server started on port: 8003');

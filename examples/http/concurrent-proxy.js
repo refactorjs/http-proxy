@@ -25,14 +25,14 @@
 */
 import http from 'node:http';
 import { createServer } from '../../src/index';
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 const targetPort = getPort();
 const proxyPort = getPort();
 //
 // Basic Http Proxy Server
 //
-createServer({
+const proxy = createServer({
     target: 'http://localhost:' + targetPort,
 }).listen(proxyPort);
 
@@ -46,7 +46,7 @@ createServer({
 const connections = [];
 let go;
 
-http.createServer(function (req, res) {
+const server = http.createServer(function (req, res) {
     connections.push(function () {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.write(
@@ -67,6 +67,8 @@ http.createServer(function (req, res) {
         }
     }
 }).listen(targetPort);
+
+setServers(proxy, server)
 
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

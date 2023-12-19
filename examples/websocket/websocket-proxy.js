@@ -28,7 +28,7 @@ import { debug } from 'node:util';
 import { createServer } from '../../src/index';
 import { Server } from 'socket.io';
 import { io } from 'socket.io-client';
-import { getPort } from '../helpers/port';
+import { getPort, setServers } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -51,7 +51,7 @@ server.sockets.on('connection', function (client) {
 //
 // Create a proxy server with node-http-proxy
 //
-createServer({ target: 'ws://localhost:' + targetPort, ws: true }).listen(proxyPort);
+const proxy = createServer({ target: 'ws://localhost:' + targetPort, ws: true }).listen(proxyPort);
 
 //
 // Setup the socket.io client against our proxy
@@ -62,3 +62,6 @@ ws.on('message', function (msg) {
     debug('Got message: ' + msg);
     ws.send('I am the client');
 });
+
+
+setServers(server, proxy)

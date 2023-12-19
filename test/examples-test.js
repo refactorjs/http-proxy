@@ -37,15 +37,19 @@ describe('http-proxy examples', function () {
         it('should have no errors', async () => {
             for (const dir of ['balancer', 'http', 'middleware', 'websocket']) {
                 const files = await readdir(join(rootDir, 'examples', dir));
-                files.forEach((file) => {
+                for (let file of files) {
                     let example;
-                    expect(
-                        () => (example = import(join(examplesDir, dir, file))),
-                    ).not.toThrow();
+                    try {
+                        // Await the imported module promise
+                        example = await import(join(examplesDir, dir, file));
+                    } catch (error) {
+                        // Fail the test if import throws an error
+                        throw new Error(`Failed to import ${join(examplesDir, dir, file)}: ${error}`);
+                    }
                     expect(typeof example).toBe('object');
                     expect(example).not.toBeNull();
                     expect(example).not.toBeUndefined();
-                });
+                }
             }
         });
     });

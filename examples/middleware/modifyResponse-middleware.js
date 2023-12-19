@@ -27,7 +27,7 @@
 import { createServer } from 'node:http';
 import connect from 'connect';
 import { createProxyServer } from '../../src/index';
-import { getPort } from '../helpers/port';
+import { getPort, setServers } from '../helpers/port';
 
 const app = connect()
 const proxyPort = getPort();
@@ -48,7 +48,7 @@ app.use(function (req, res) {
     proxy.web(req, res);
 });
 
-createServer(app).listen(proxyPort);
+const connection = createServer(app).listen(proxyPort);
 
 //
 // Basic Http Proxy Server
@@ -60,10 +60,12 @@ const proxy = createProxyServer({
 //
 // Target Http Server
 //
-createServer(function (req, res) {
+const server = createServer(function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Hello, I love Ruby\n');
 }).listen(targetPort);
+
+setServers(proxy, server, connection)
 
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

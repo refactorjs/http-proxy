@@ -257,10 +257,19 @@ describe('src/proxy/common.ts', () => {
             );
         });
 
+        it('should replace multiple http:/ with http://', () => {
+            var outgoing = {};
+            setupOutgoing(outgoing, {
+                target: { path: '/' },
+            }, { url: '/xyz/http://foobar.com/http://foobar.com/https://foobar.com' });
+
+            expect(outgoing.path).toEqual('/xyz/http://foobar.com/http://foobar.com/https://foobar.com');
+        })
+
         //
         // This is the proper failing test case for the common.join problem
         //
-        it.skip('should correctly format the toProxy URL', () => {
+        it('should correctly format the toProxy URL', () => {
             const outgoing = {};
             const google = 'https://google.com';
             setupOutgoing(
@@ -272,10 +281,10 @@ describe('src/proxy/common.ts', () => {
                 { url: google },
             );
 
-            expect(outgoing.path).toEqual('//' + google);
+            expect(outgoing.path).toEqual('/' + google);
         });
 
-        it.skip('should not replace : to :\\ when no https word before', () => {
+        it('should not replace : to :\\ when no https word before', () => {
             const outgoing = {};
             const google = 'https://google.com:/join/join.js';
             setupOutgoing(
@@ -290,7 +299,7 @@ describe('src/proxy/common.ts', () => {
             expect(outgoing.path).toEqual('/' + google);
         });
 
-        it.skip('should not replace : to :\\ when no http word before', () => {
+        it('should not replace : to :\\ when no http word before', () => {
             const outgoing = {};
             const google = 'http://google.com:/join/join.js';
             setupOutgoing(

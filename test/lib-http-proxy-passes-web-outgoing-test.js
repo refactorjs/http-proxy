@@ -1,4 +1,4 @@
-import { attachOutgoingHeaders, removeChunked, chunkedResponse, setConnection, setRedirectHostRewrite, writeHeaders, writeStatusCode } from '../src/proxy/passes/web.outgoing';
+import { attachOutgoingHeaders, removeChunked, setConnection, setRedirectHostRewrite, writeHeaders, writeStatusCode } from '../src/proxy/passes/web.outgoing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('src/proxy/passes/web.outgoing.ts', () => {

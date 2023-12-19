@@ -25,17 +25,18 @@
 */
 
 import { createServer } from 'node:http';
-import { createServer as _createServer, compress } from 'connect';
+import connect from 'connect';
+import compression from 'compression';
 import { createProxyServer } from '../../src/index';
-import { getPort } from '../helpers/port';
+import { getPort, setServers } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
 //
 // Basic Connect App
 //
-_createServer(
-    compress({
+const connectServer = connect(
+    compression({
         // Pass to connect.compress() the options
         // that you need, just for show the example
         // we use threshold to 1
@@ -56,7 +57,7 @@ const proxy = createProxyServer({
 //
 // Target Http Server
 //
-createServer(function (req, res) {
+const server = createServer(function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.write(
         'request successfully proxied to: ' +
@@ -66,6 +67,8 @@ createServer(function (req, res) {
     );
     res.end();
 }).listen(targetPort);
+
+setServers(connectServer, proxy, server)
 
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

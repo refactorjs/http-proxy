@@ -190,6 +190,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
                     server.emit('end', req, res, proxyRes);
                 }
             });
+
             // We pipe to the response unless its expected to be handled by the user
             if (!selfHandle) {
                 proxyRes.pipe(res);

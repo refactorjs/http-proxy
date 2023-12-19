@@ -26,14 +26,14 @@
 
 import { createServer } from 'node:http';
 import { createProxyServer } from '../../src/index';
-import { getPort } from '../helpers/port';
+import { getPort, setServers } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
 //
 // Http Server with proxyRequest Handler and Latency
 //
-const proxy = new createProxyServer();
+const proxy = createProxyServer();
 createServer(function (req, res) {
     setTimeout(function () {
         proxy.web(req, res, {
@@ -45,7 +45,7 @@ createServer(function (req, res) {
 //
 // Target Http Server
 //
-createServer(function (req, res) {
+const server = createServer(function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.write(
         'request successfully proxied to: ' +
@@ -55,6 +55,8 @@ createServer(function (req, res) {
     );
     res.end();
 }).listen(targetPort);
+
+setServers(proxy, server)
 
 console.log(
     'http server started on port ' +

@@ -25,7 +25,7 @@
 */
 
 import { createServer } from '../../src/index';
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 const targetPort = getPort();
 const proxyPort = getPort();
@@ -50,6 +50,8 @@ proxy.on('error', function (err, req, res) {
 
     res.end('Something went wrong. And we are reporting a custom error message.');
 });
+
+setServers(proxy)
 
 console.log(
     'http proxy server started on port ' +

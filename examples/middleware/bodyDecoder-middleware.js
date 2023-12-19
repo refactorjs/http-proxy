@@ -30,7 +30,7 @@ import { post } from 'request'
 import { stringify } from 'node:querystring'
 import { json as _json, urlencoded } from 'body-parser'
 import { createProxyServer } from '../../src/index'
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 const proxy = createProxyServer({})
 
@@ -74,7 +74,7 @@ const app = connect()
         });
     });
 
-createServer(app).listen(proxyPort);
+const server = createServer(app).listen(proxyPort);
 
 //
 //  Target Http Server
@@ -91,7 +91,7 @@ const app1 = connect()
         );
     });
 
-createServer(app1).listen(targetPort, function () {
+const serverTwo = createServer(app1).listen(targetPort, function () {
     //request to 8013 to proxy
     post(
         {
@@ -116,3 +116,5 @@ createServer(app1).listen(targetPort, function () {
         },
     );
 });
+
+setServers(proxy, server, serverTwo)

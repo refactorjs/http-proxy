@@ -29,7 +29,7 @@ import { createServer } from 'node:http';
 import { createProxyServer } from '../../src/index';
 import { Server } from 'socket.io';
 import { io } from 'socket.io-client';
-import { getPort } from '../helpers/port';
+import { getPort, setServers } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -51,7 +51,7 @@ server.sockets.on('connection', function (client) {
 //
 // Setup our server to proxy standard HTTP requests
 //
-const proxy = new createProxyServer({
+const proxy = createProxyServer({
     target: {
         host: 'localhost',
         port: targetPort,
@@ -80,3 +80,5 @@ ws.on('message', function (msg) {
     debug('Got message: ' + msg);
     ws.send('I am the client');
 });
+
+setServers(proxy, proxyServer, server)

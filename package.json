@@ -1,6 +1,6 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",
@@ -32,8 +32,6 @@
         "@types/requires-port": "^1.0.3",
         "async": "^3.2.5",
         "concat-stream": "^2.0.0",
-        "nyc": "^15.1.0",
-        "semver": "^7.5.4",
         "socket.io": "^4.7.2",
         "socket.io-client": "^4.7.2",
         "sse": "0.0.8",

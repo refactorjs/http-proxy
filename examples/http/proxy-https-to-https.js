@@ -33,14 +33,14 @@ const httpsOpts = {
     key: readFileSync(join(fixturesDir, 'agent2-key.pem'), 'utf8'),
     cert: readFileSync(join(fixturesDir, 'agent2-cert.pem'), 'utf8'),
 };
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 const proxyPort = getPort();
 const targetPort = getPort();
 //
 // Create the target HTTPS server
 //
-createServer(httpsOpts, function (req, res) {
+const server = createServer(httpsOpts, function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.write('hello https\n');
     res.end();
@@ -49,11 +49,13 @@ createServer(httpsOpts, function (req, res) {
 //
 // Create the proxy server listening on port 8010
 //
-_createServer({
+const proxy = _createServer({
     ssl: httpsOpts,
     target: 'https://localhost:' + targetPort,
     secure: false,
 }).listen(proxyPort);
+
+setServers(server, proxy)
 
 console.log('https proxy server started on port ' + proxyPort);
 console.log('https server started on port ' + targetPort);

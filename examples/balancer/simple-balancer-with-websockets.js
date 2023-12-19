@@ -25,7 +25,7 @@
 */
 import http from 'node:http';
 import { createProxyServer } from '../../src/index';
-import { getPort } from '../helpers/port'
+import { getPort, setServers } from '../helpers/port'
 
 //
 // A simple round-robin load balancing strategy.
@@ -48,7 +48,7 @@ const addresses = [
 //
 
 const proxies = addresses.map(function (target) {
-    return new createProxyServer({
+    return createProxyServer({
         target: target,
     });
 });
@@ -79,5 +79,11 @@ const server = http.createServer(function (req, res) {
 server.on('upgrade', function (req, socket, head) {
     nextProxy().ws(req, socket, head);
 });
+
+for (const proxy in proxies) {
+    setServers(proxy)
+}
+
+setServers(server)
 
 server.listen(getPort());
