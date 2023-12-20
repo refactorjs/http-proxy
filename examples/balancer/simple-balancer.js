@@ -25,7 +25,7 @@
 */
 import http from 'node:http';
 import { createServer } from '../../src/index';
-import { getPort, setServers } from '../helpers/port'
+import { getPort } from '../helpers/port'
 
 //
 // A simple round-robin load balancing strategy.
@@ -62,7 +62,5 @@ const server = http.createServer(function (req, res) {
     addresses.push(target.target);
 })
 .listen(getPort());
-    
-setServers(server, proxy)
 
 // Rinse; repeat; enjoy.

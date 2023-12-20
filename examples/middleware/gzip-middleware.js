@@ -28,7 +28,7 @@ import { createServer } from 'node:http';
 import connect from 'connect';
 import compression from 'compression';
 import { createProxyServer } from '../../src/index';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -67,8 +67,6 @@ const server = createServer(function (req, res) {
     );
     res.end();
 }).listen(targetPort);
-
-setServers(connectServer, proxy, server)
 
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

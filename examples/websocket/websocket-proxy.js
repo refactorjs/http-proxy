@@ -28,7 +28,7 @@ import { debug } from 'node:util';
 import { createServer } from '../../src/index';
 import { Server } from 'socket.io';
 import { io } from 'socket.io-client';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -62,6 +62,3 @@ ws.on('message', function (msg) {
     debug('Got message: ' + msg);
     ws.send('I am the client');
 });
-
-
-setServers(server, proxy)

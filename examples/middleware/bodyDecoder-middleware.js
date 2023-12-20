@@ -30,7 +30,7 @@ import { post } from 'request'
 import { stringify } from 'node:querystring'
 import { json as _json, urlencoded } from 'body-parser'
 import { createProxyServer } from '../../src/index'
-import { getPort, setServers } from '../helpers/port'
+import { getPort } from '../helpers/port'
 
 const proxy = createProxyServer({})
 
@@ -116,5 +116,3 @@ const serverTwo = createServer(app1).listen(targetPort, function () {
         },
     );
 });
-
-setServers(proxy, server, serverTwo)

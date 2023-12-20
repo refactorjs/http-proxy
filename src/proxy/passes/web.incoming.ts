@@ -154,7 +154,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
 
     function createErrorHandler(proxyReq: httpNative.ClientRequest, target: Server.ServerOptions['target']) {
         return function proxyError(err: any) {
-            if (req.destroyed && err.code === 'ECONNRESET') {
+            if (req.socket?.destroyed && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, target);
                 proxyReq.destroy();
                 return;

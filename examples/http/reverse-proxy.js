@@ -25,7 +25,7 @@ import { createServer } from 'node:http';
 import { connect } from 'node:net';
 import { createServer as _createServer } from '../../src/index';
 import { parse } from 'url';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const proxy = _createServer();
 
@@ -55,8 +55,6 @@ server.on('connect', function (req, socket) {
         },
     );
 });
-
-setServers(proxy, server)
 
 // Test with:
 // curl -vv -x http://127.0.0.1:8213 https://www.google.com

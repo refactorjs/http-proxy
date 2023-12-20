@@ -28,7 +28,7 @@ import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { createServer as _createServer } from '../../src/index';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const fixturesDir = join(__dirname, '..', '..', 'test', 'fixtures');
 const proxyPort = getPort();
@@ -56,8 +56,6 @@ const proxy = _createServer({
         cert: readFileSync(join(fixturesDir, 'agent2-cert.pem'), 'utf8'),
     },
 }).listen(proxyPort);
-
-setServers(server, proxy)
 
 console.log('https proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

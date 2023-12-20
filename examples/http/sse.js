@@ -27,7 +27,7 @@
 import { createServer } from 'node:http';
 import { createProxyServer } from '../../src/index';
 import SSE from 'sse';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -69,6 +69,5 @@ sse.on('connection', function (client) {
 
 server.listen(targetPort);
 
-setServers(proxy, server)
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

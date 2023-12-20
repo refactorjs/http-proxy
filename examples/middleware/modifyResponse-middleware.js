@@ -27,7 +27,7 @@
 import { createServer } from 'node:http';
 import connect from 'connect';
 import { createProxyServer } from '../../src/index';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const app = connect()
 const proxyPort = getPort();
@@ -64,8 +64,6 @@ const server = createServer(function (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Hello, I love Ruby\n');
 }).listen(targetPort);
-
-setServers(proxy, server, connection)
 
 console.log('http proxy server started on port ' + proxyPort);
 console.log('http server started on port ' + targetPort);

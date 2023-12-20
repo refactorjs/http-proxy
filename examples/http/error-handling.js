@@ -26,7 +26,7 @@
 
 import { createServer } from 'node:http';
 import { createProxyServer } from '../../src/index';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -64,5 +64,5 @@ function requestHandler(req, res) {
 }
 
 createServer(requestHandler).listen(proxyPort);
-setServers(proxy)
+
 console.log('http proxy server started on port ' + proxyPort);

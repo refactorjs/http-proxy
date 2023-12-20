@@ -1,6 +1,6 @@
 import { createProxy } from '../../src/index';
 import { createServer } from 'node:http';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 import Agent from 'agentkeepalive';
 
 const targetPort = getPort()
@@ -33,5 +33,3 @@ const server = createServer(function (req, res) {
     req.headers.remotePort = req.socket.remotePort;
     proxy.web(req, res);
 }).listen(targetPort);
-
-setServers(proxy, server)

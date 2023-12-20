@@ -26,7 +26,7 @@
 
 import { globalAgent } from 'node:https';
 import { createProxyServer } from '../../src/index';
-import { getPort, setServers } from '../helpers/port';
+import { getPort } from '../helpers/port';
 
 const proxyPort = getPort();
 //
@@ -39,7 +39,5 @@ const proxy = createProxyServer({
         host: 'google.com',
     },
 }).listen(proxyPort);
-
-setServers(proxy)
 
 console.log('http proxy server started on port ' + proxyPort);

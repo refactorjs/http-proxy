@@ -33,7 +33,7 @@ const httpsOpts = {
     key: readFileSync(join(fixturesDir, 'agent2-key.pem'), 'utf8'),
     cert: readFileSync(join(fixturesDir, 'agent2-cert.pem'), 'utf8'),
 };
-import { getPort, setServers } from '../helpers/port'
+import { getPort } from '../helpers/port'
 
 const proxyPort = getPort();
 const targetPort = getPort();
@@ -54,8 +54,6 @@ const proxy = _createServer({
     target: 'https://localhost:' + targetPort,
     secure: false,
 }).listen(proxyPort);
-
-setServers(server, proxy)
 
 console.log('https proxy server started on port ' + proxyPort);
 console.log('https server started on port ' + targetPort);
