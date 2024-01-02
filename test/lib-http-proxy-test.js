@@ -580,6 +580,96 @@ describe('src/index.ts', () => {
         });
 
         it('should detect a proxyReq event and modify headers', async () => {
+            const ports = { source: gen.port, proxy: gen.port }
+
+            const proxy = createProxyServer({
+                target: 'http://127.0.0.1:' + ports.source,
+            });
+        
+            proxy.on('proxyReq', function (proxyReq, req, res, options) {
+                proxyReq.setHeader('X-Special-Proxy-Header', 'foobar');
+                proxyReq.removeHeader('X-Request-Header');
+            });
+
+            const proxyServer = proxy.listen(ports.proxy);
+
+            const server = createServer(function (req, res) {
+                expect(req.headers).not.toHaveProperty('x-request-header');
+                expect(req.headers['x-special-proxy-header']).toEqual('foobar');
+                res.end('Hello');
+            })
+            .listen(ports.source);
+
+            const serversClosed = new Promise((resolve) => {
+                request({
+                    hostname: '127.0.0.1',
+                    port: ports.proxy,
+                    headers: {
+                      'x-request-header': 'test'
+                    },
+                  }, function (res) {
+                    res.on('data', function (data) {
+                        expect(data.toString()).toEqual('Hello');
+                        proxyServer.close(() => {
+                            server.close(() => {
+                                resolve();
+                            });
+                        });
+                    });
+                }).end()
+            })
+
+            await serversClosed;
+        });
+
+        it('should detect a proxyReq event and modify headers and only allow xfwd and host headers', async () => {
+            const ports = { source: gen.port, proxy: gen.port }
+            const ALLOWED_HEADERS = ['host', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-port', 'x-forwarded-proto'];
+
+            const proxy = createProxyServer({
+                target: 'http://127.0.0.1:' + ports.source,
+                xfwd: true,
+            });
+        
+            proxy.on('proxyReq', function (proxyReq, req, res, options) {
+                proxyReq.getHeaderNames().forEach((header) => {
+                    if (!ALLOWED_HEADERS.includes(header)) {
+                        proxyReq.removeHeader(header);
+                    }
+                });
+            });
+
+            const proxyServer = proxy.listen(ports.proxy);
+
+            const server = createServer(function (req, res) {
+                expect(req.headers).not.toHaveProperty('connection');
+                res.end('Hello');
+            })
+            .listen(ports.source);
+
+            const serversClosed = new Promise((resolve) => {
+                request({
+                    hostname: '127.0.0.1',
+                    port: ports.proxy,
+                    headers: {
+                      'x-request-header': 'test'
+                    },
+                  }, function (res) {
+                    res.on('data', function (data) {
+                        expect(data.toString()).toEqual('Hello');
+                        proxyServer.close(() => {
+                            server.close(() => {
+                                resolve();
+                            });
+                        });
+                    });
+                }).end()
+            })
+
+            await serversClosed;
+        });
+
+        it('should detect a proxyReqWs event and modify headers', async () => {
             const ports = { source: gen.port, proxy: gen.port };
 
             const proxy = createProxyServer({
@@ -620,7 +710,7 @@ describe('src/index.ts', () => {
             await waitForClosed(proxyServer);
         });
 
-        it('should detect a proxyReq event and modify headers with async handler', async () => {
+        it('should detect a proxyReqWs event and modify headers with async handler', async () => {
             const ports = { source: gen.port, proxy: gen.port }
 
             const proxy = createProxyServer({
