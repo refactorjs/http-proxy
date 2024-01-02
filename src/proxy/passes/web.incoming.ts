@@ -113,15 +113,19 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     proxyReq.on('socket', function (socket: Socket) {
         if (socket.pending) {
             // if not connected, wait till connect to pipe
-            socket.on('connect', () => (options.buffer || req).pipe(proxyReq));
+            socket.on('connect', () => {
+                if (server && !proxyReq.getHeader('expect')) {
+                    server.emit('proxyReq', proxyReq, req, res, options);
+                }
+                (options.buffer || req).pipe(proxyReq);
+            });
         }
         else {
+            if (server && !proxyReq.getHeader('expect')) {
+                server.emit('proxyReq', proxyReq, req, res, options);
+            }
             // socket is connected (reused?), just pipe
             (options.buffer || req).pipe(proxyReq);
-        }
-
-        if (server && !proxyReq.getHeader('expect')) {
-            server.emit('proxyReq', proxyReq, req, res, options);
         }
     });
 
