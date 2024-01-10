@@ -132,8 +132,8 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
         // Remark: Handle writing the headers to the socket when switching protocols
         // Also handles when a header is an array
         //
-        if (!req.headers['x-method-ori']) {
-            // if only not switch request method, like from connect to websocket
+        // if only not switch request method, like from connect to websocket
+        if (socket.writable) {
             socket.write(createHttpHeader('HTTP/1.1 101 Switching Protocols', proxyRes.headers));
         }
 
