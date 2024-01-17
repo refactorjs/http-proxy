@@ -40,7 +40,7 @@ $ npm run test
 - **ignorePath:** `boolean` - Default: false - specify whether you want to ignore the proxy path of the incoming request (note: you will have to append / manually if required).
 - **localAddress:** `string` Local interface string to bind for outgoing connections
 - ~~**changeOrigin:** `boolean` - Default: false - changes the origin of the host header to the target URL~~ | `deprecated`
-- **changeOrigin:** `boolean` - Default: false - changes the origin of the host header to the target URL
+- **changeHost:** `boolean` - Default: false - changes the origin of the host header to the target URL
 - **preserveHeaderKeyCase:** `boolean` - Default: false - specify whether you want to keep letter case of response header key
 - **auth:** `string` - Basic authentication i.e. 'user:password' to compute an Authorization header.
 - **hostRewrite:** `string` - rewrites the location hostname on (201/301/302/303/307/308) redirects.
