@@ -1,5 +1,6 @@
 import * as url from 'node:url';
 import * as net from 'node:net';
+import * as tls from 'node:tls';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as buffer from 'node:buffer';
@@ -42,9 +43,9 @@ export interface WebPassthrough {
 }
 
 export interface WsPassthrough {
-    (req: http.IncomingMessage, socket: net.Socket): boolean | void;
-    (req: http.IncomingMessage, socket: net.Socket, head?: buffer.Buffer): boolean | void;
-    (req: http.IncomingMessage, socket: net.Socket, options: Server.ServerOptions, head?: buffer.Buffer, server?: ProxyServer, callback?: Server.ErrorCallback): boolean | void;
+    (req: http.IncomingMessage, socket: net.Socket | tls.TLSSocket): boolean | void;
+    (req: http.IncomingMessage, socket: net.Socket | tls.TLSSocket, head?: buffer.Buffer): boolean | void;
+    (req: http.IncomingMessage, socket: net.Socket | tls.TLSSocket, options: Server.ServerOptions, head?: buffer.Buffer, server?: ProxyServer, callback?: Server.ErrorCallback): boolean | void;
 }
 
 export declare namespace Server {
@@ -74,8 +75,14 @@ export declare namespace Server {
         ignorePath?: boolean;
         /** Local interface string to bind for outgoing connections. */
         localAddress?: string;
-        /** Changes the origin of the host header to the target URL. */
+        /**
+         * @deprecated use `changeHost` instead
+         * 
+         * Changes the origin of the host header to the target URL.
+         */
         changeOrigin?: boolean;
+        /** Changes the origin of the host header to the target URL. */
+        changeHost?: boolean;
         /** specify whether you want to keep letter case of response header key */
         preserveHeaderKeyCase?: boolean;
         /** Basic authentication i.e. 'user:password' to compute an Authorization header. */
@@ -109,9 +116,9 @@ export declare namespace Server {
         /** If set to true, none of the webOutgoing passes are called and it's your responsibility to appropriately return the response by listening and acting on the proxyRes event */
         selfHandleResponse?: boolean | Function;
         /** if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the client websocket will be piped through this stream before being piped to the server, allowing you to influence the request data. */
-        createWsClientTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket;
+        createWsClientTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket | tls.TLSSocket;
         /** if set, this function will be called with three arguments `req`, `proxyReq` and `proxyRes` and should return a Duplex stream, data from the server websocket will be piped through this stream before being piped to the client, allowing you to influence the response data. */
-        createWsServerTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket;
+        createWsServerTransformStream?: (req: http.IncomingMessage, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage) => net.Socket | tls.TLSSocket;
         /** Buffer */
         buffer?: stream.Stream;
         /** Custom lookup function to pass to http(s).request */
@@ -121,10 +128,10 @@ export declare namespace Server {
     type StartCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl) => void;
     type ProxyReqCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (proxyReq: TClientRequest, req: TIncomingMessage, res: TServerResponse, options: ServerOptions) => void;
     type ProxyResCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (proxyRes: TIncomingMessage, req: TIncomingMessage, res: TServerResponse) => void;
-    type ProxyReqWsCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage> = (proxyReq: TClientRequest, req: TIncomingMessage, socket: net.Socket, options: ServerOptions, head: buffer.Buffer) => void;
-    type EconnresetCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (err: TError, req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl) => void;
+    type ProxyReqWsCallback<TClientRequest = http.ClientRequest, TIncomingMessage = http.IncomingMessage> = (proxyReq: TClientRequest, req: TIncomingMessage, socket: net.Socket | tls.TLSSocket, options: ServerOptions, head: buffer.Buffer) => void;
+    type EconnresetCallback<TError = NodeJS.ErrnoException, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (err: TError, req: TIncomingMessage, res: TServerResponse, target: ProxyTargetUrl) => void;
     type EndCallback<TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (req: TIncomingMessage, res: TServerResponse, proxyRes: TIncomingMessage) => void;
-    type OpenCallback = (proxySocket: net.Socket) => void;
-    type CloseCallback<TIncomingMessage = http.IncomingMessage> = (proxyRes: TIncomingMessage, proxySocket: net.Socket, proxyHead: buffer.Buffer) => void;
-    type ErrorCallback<TError = Error, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (err: TError, req: TIncomingMessage, res: TServerResponse | net.Socket, target?: Server.ServerOptions['target']) => void;
+    type OpenCallback = (proxySocket: net.Socket | tls.TLSSocket) => void;
+    type CloseCallback<TIncomingMessage = http.IncomingMessage> = (proxyRes: TIncomingMessage, proxySocket: net.Socket | tls.TLSSocket, proxyHead: buffer.Buffer) => void;
+    type ErrorCallback<TError = NodeJS.ErrnoException, TIncomingMessage = http.IncomingMessage, TServerResponse = http.ServerResponse> = (err: TError, req: TIncomingMessage, res: TServerResponse | net.Socket | tls.TLSSocket, target?: Server.ServerOptions['target']) => void;
 }

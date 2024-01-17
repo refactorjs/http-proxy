@@ -113,7 +113,7 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
 
     outgoing.path = [targetPath, outgoingPath].filter(Boolean).join('/').replace(/\/+/g, '/').replace(/http:\//g, 'http://').replace(/https:\//g, 'https://') + params
 
-    if (options.changeOrigin) {
+    if (options.changeOrigin || options.changeHost) {
         outgoing.headers.host = required(outgoing.port, target.protocol!) && !hasPort(outgoing.host.toString()) ? outgoing.host + ':' + outgoing.port : outgoing.host;
     }
 
@@ -136,10 +136,9 @@ export function setupOutgoing(outgoing: OutgoingOptions, options: OutgoingOption
  *
  * @api private
  */
-export function setupSocket(socket: Socket): Socket {
+export function setupSocket(socket: Socket | TLSSocket): Socket | TLSSocket {
     socket.setTimeout(0);
     socket.setNoDelay(true);
-
     socket.setKeepAlive(true, 0);
 
     return socket;

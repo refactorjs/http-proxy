@@ -3,7 +3,7 @@ import dns from 'node:dns'
 
 const proxy = createServer({
     target: 'http://example.com:80',
-    changeOrigin: true,
+    changeHost: true,
 
     // Define custom dns lookup function
     lookup: function (host, options, callback) {

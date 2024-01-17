@@ -514,10 +514,10 @@ describe('#createProxyServer.web() using own http server', () => {
         );
     });
 
-    it('should proxy the request and handle changeOrigin option', async () => {
+    it('should proxy the request and handle changeHost option', async () => {
         const proxy = createProxyServer({
             target: 'http://127.0.0.1:8082',
-            changeOrigin: true,
+            changeHost: true,
         });
 
         function requestHandler(req, res) {

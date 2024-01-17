@@ -1,5 +1,6 @@
 import type { Server, WebPassthrough, WsPassthrough } from '../types';
 import type { Socket } from 'node:net';
+import type { TLSSocket } from 'node:tls';
 import { Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import http, { IncomingMessage, ServerResponse } from 'node:http';
@@ -9,7 +10,7 @@ import * as wsIncoming from './passes/ws.incoming';
 
 export class ProxyServer extends EventEmitter {
     options: Server.ServerOptions;
-    server?: http.Server | https.Server = undefined;
+    #server?: http.Server | https.Server = undefined;
     webPasses: WebPassthrough[];
     wsPasses: WsPassthrough[];
 
@@ -29,7 +30,7 @@ export class ProxyServer extends EventEmitter {
         super.on('error', this.onError);
     }
 
-    onError(err: Error) {
+    onError(err: NodeJS.ErrnoException) {
         if (super.listeners('error').length === 1) {
             throw err;
         }
@@ -45,15 +46,15 @@ export class ProxyServer extends EventEmitter {
             this.web(req, res);
         };
 
-        this.server = this.options.ssl ? https.createServer(this.options.ssl, closure) : http.createServer(closure);
+        this.#server = this.options.ssl ? https.createServer(this.options.ssl, closure) : http.createServer(closure);
 
         if (this.options.ws) {
-            this.server.on('upgrade', (req: IncomingMessage, socket: Socket, head: Buffer) => {
+            this.#server.on('upgrade', (req: IncomingMessage, socket: Socket | TLSSocket, head: Buffer) => {
                 this.ws(req, socket, head);
             });
         }
 
-        this.server.listen(port, hostname);
+        this.#server.listen(port, hostname);
 
         return this;
     }
@@ -62,9 +63,9 @@ export class ProxyServer extends EventEmitter {
      * A function that closes the inner webserver and stops listening on given port
      */
     close(callback?: () => void) {
-        if (this.server) {
-            this.server.close(() => {
-                this.server = undefined;
+        if (this.#server) {
+            this.#server.close(() => {
+                this.#server = undefined;
                 callback?.();
             });
         }
@@ -140,7 +141,7 @@ export class ProxyServer extends EventEmitter {
      * @param socket - Client socket.
      * @param args - Additional arguments for the websocket proxy
      */
-    ws(req: IncomingMessage, socket: Socket, ...args: any[]) {
+    ws(req: IncomingMessage, socket: Socket | TLSSocket, ...args: any[]) {
         let index = args.length - 1;
         let head: Buffer | undefined = undefined;
         let callback: Server.ErrorCallback | undefined = undefined;

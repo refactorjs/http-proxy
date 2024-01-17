@@ -1,6 +1,6 @@
 {
     "name": "@refactorjs/http-proxy",
-    "version": "0.2.8",
+    "version": "0.2.11",
     "description": "http-proxy alternative",
     "repository": {
         "type": "git",

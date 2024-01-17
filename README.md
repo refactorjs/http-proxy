@@ -39,11 +39,12 @@ $ npm run test
 - **prependPath:** `boolean` - Default: true - specify whether you want to prepend the target's path to the proxy path
 - **ignorePath:** `boolean` - Default: false - specify whether you want to ignore the proxy path of the incoming request (note: you will have to append / manually if required).
 - **localAddress:** `string` Local interface string to bind for outgoing connections
+- ~~**changeOrigin:** `boolean` - Default: false - changes the origin of the host header to the target URL~~ | `deprecated`
 - **changeOrigin:** `boolean` - Default: false - changes the origin of the host header to the target URL
 - **preserveHeaderKeyCase:** `boolean` - Default: false - specify whether you want to keep letter case of response header key
 - **auth:** `string` - Basic authentication i.e. 'user:password' to compute an Authorization header.
-- **hostRewrite:** `string` - rewrites the location hostname on (201/301/302/307/308) redirects.
-- **autoRewrite:** `boolean` - rewrites the location host/port on (201/301/302/307/308) redirects based on requested host/port. Default: false.
+- **hostRewrite:** `string` - rewrites the location hostname on (201/301/302/303/307/308) redirects.
+- **autoRewrite:** `boolean` - rewrites the location host/port on (201/301/302/303/307/308) redirects based on requested host/port. Default: false.
 - **protocolRewrite:** `http|https|null` - rewrites the location protocol on (201/301/302/307/308) redirects to 'http' or 'https'.
 - **cookieDomainRewrite:** `false|string|object` - rewrites domain of `set-cookie` headers. Possible values:
     * `false` (default): disable cookie rewriting
@@ -92,6 +93,20 @@ $ npm run test
         proxy.web(req, res, {
             target: 'http://localhost:4003/',
             buffer: streamify(req.rawBody)
+        }, next);
+    }
+    ```
+- **lookup:** `undefined|function` define a custom dns [lookup](https://nodejs.org/docs/latest-v12.x/api/dns.html#dns_dns_lookup_hostname_options_callback) function to use when resolving target/forward hostnames.
+    ```js
+    // Example: add dns caching
+    import dlc from 'dns-lookup-cache'
+    import { ProxyServer } from '@refactorjs/http-proxy'
+    const proxy = new ProxyServer();
+
+    export function (req, res, next) {
+        proxy.web(req, res, {
+            target: 'http://example.com',
+            lookup: dlc.lookup,
         }, next);
     }
     ```

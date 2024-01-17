@@ -1,6 +1,7 @@
 import type { Server, OutgoingOptions } from '../../types';
 import type { ProxyServer } from '../';
 import type { Socket } from 'node:net';
+import type { TLSSocket } from 'node:tls';
 import { hasEncryptedConnection, getPort, isSSL, setupOutgoing } from '../common';
 import httpNative, { IncomingMessage, ServerResponse } from 'node:http';
 import httpsNative, { RequestOptions } from 'node:https';
@@ -110,7 +111,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     const proxyReq = (isSSL.test(options.target!['protocol' as keyof Server.ServerOptions['target']]) ? https : http).request(setupOutgoing((options.ssl || {}) as OutgoingOptions, options as OutgoingOptions, req) as RequestOptions);
 
     // Enable developers to modify the proxyReq before headers are sent
-    proxyReq.on('socket', function (socket: Socket) {
+    proxyReq.on('socket', function (socket: Socket | TLSSocket) {
         if (socket.pending) {
             // if not connected, wait till connect to pipe
             socket.on('connect', () => {
@@ -134,8 +135,7 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     if (options.proxyTimeout) {
         proxyReq.setTimeout(options.proxyTimeout, function () {
             if (options.proxyTimeoutCustomError) {
-                let timeoutError = new Error('The proxy request timed out');
-                // @ts-ignore - NodeJs does not export code
+                let timeoutError: NodeJS.ErrnoException = new Error('The proxy request timed out');
                 timeoutError.code = 'ETIMEDOUT';
                 return proxyReq.destroy(timeoutError);
             }
@@ -157,8 +157,8 @@ export function stream(req: IncomingMessage, res: ServerResponse, options: Serve
     req.on('error', proxyError);
 
     function createErrorHandler(proxyReq: httpNative.ClientRequest, target: Server.ServerOptions['target']) {
-        return function proxyError(err: any) {
-            if (req.socket?.destroyed && err.code === 'ECONNRESET') {
+        return function proxyError(err: NodeJS.ErrnoException) {
+            if ((req.destroyed || req.socket?.destroyed) && err.code === 'ECONNRESET') {
                 server.emit('econnreset', err, req, res, target);
                 proxyReq.destroy();
                 return;

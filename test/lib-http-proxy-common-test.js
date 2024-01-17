@@ -347,7 +347,7 @@ describe('src/proxy/common.ts', () => {
             });
         });
 
-        describe('when using changeOrigin', () => {
+        describe('when using changeHost', () => {
             it('should correctly set the port to the host when it is a non-standard port using new URL()', () => {
                 const outgoing = {};
                 const myEndpoint = 'https://myCouch.com:6984';
@@ -355,7 +355,7 @@ describe('src/proxy/common.ts', () => {
                     outgoing,
                     {
                         target: new URL(myEndpoint),
-                        changeOrigin: true,
+                        changeHost: true,
                     },
                     { url: '/' },
                 );
@@ -373,7 +373,7 @@ describe('src/proxy/common.ts', () => {
                             host: 'mycouch.com',
                             port: 6984,
                         },
-                        changeOrigin: true,
+                        changeHost: true,
                     },
                     { url: '/' },
                 );
