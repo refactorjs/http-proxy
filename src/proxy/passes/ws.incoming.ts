@@ -98,10 +98,11 @@ export async function stream(req: IncomingMessage, socket: Socket, options: Serv
 
     // Error Handler
     proxyReq.on('error', onOutgoingError);
-    proxyReq.on('response', function (res: IncomingMessage) {
+    proxyReq.on('response', function (res) {
         // if upgrade event isn't going to happen, close the socket
         // IncomingMessage type also passes through the response event
-        if (!res.headers.upgrade && !socket.destroyed) {
+        // @ts-expect-error: res.upgrade doesn't exist in `IncomingMessage`
+        if (!res.upgrade && socket.readyState !== 'closed') {
             socket.write(createHttpHeader('HTTP/' + res.httpVersion + ' ' + res.statusCode + ' ' + res.statusMessage, res.headers));
             res.pipe(socket).on('error', onOutgoingError)
         }
